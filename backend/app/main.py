@@ -32,19 +32,24 @@ async def lifespan(app: FastAPI):
     from app.models.user import User
     from app.services.auth import hash_password
     from sqlalchemy import select
+    from sqlalchemy.exc import IntegrityError
 
     async with async_session_factory() as session:
         result = await session.execute(select(User).where(User.email == settings.ADMIN_EMAIL))
         if result.scalar_one_or_none() is None:
-            admin_user = User(
-                email=settings.ADMIN_EMAIL,
-                hashed_password=hash_password(settings.ADMIN_PASSWORD),
-                role="admin",
-                balance=0,
-            )
-            session.add(admin_user)
-            await session.commit()
-            logger.info(f"✅ Администратор создан: {settings.ADMIN_EMAIL}")
+            try:
+                admin_user = User(
+                    email=settings.ADMIN_EMAIL,
+                    hashed_password=hash_password(settings.ADMIN_PASSWORD),
+                    role="admin",
+                    balance=0,
+                )
+                session.add(admin_user)
+                await session.commit()
+                logger.info(f"✅ Администратор создан: {settings.ADMIN_EMAIL}")
+            except IntegrityError:
+                await session.rollback()
+                logger.info(f"ℹ️ Администратор {settings.ADMIN_EMAIL} уже существует (создан другим воркером)")
 
     yield
     logger.info("🛑 Infinity Cloud Backend остановлен")
