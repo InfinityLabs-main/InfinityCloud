@@ -2,8 +2,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ENV npm_config_loglevel=error \
+	npm_config_fund=false \
+	npm_config_audit=false \
+	npm_config_update_notifier=false
+
 COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN if [ -f package-lock.json ]; then npm ci --no-fund --no-audit --loglevel=error; else npm install --no-fund --no-audit --loglevel=error; fi
 
 COPY . .
 RUN npm run build
