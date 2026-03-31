@@ -7,6 +7,7 @@ export default function AdminPlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editPlan, setEditPlan] = useState<Plan | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     name: "", slug: "", cpu_cores: 1, ram_mb: 1024,
     disk_gb: 20, bandwidth_tb: 1, price_per_hour: 0.5,
@@ -28,6 +29,7 @@ export default function AdminPlansPage() {
     });
     setEditPlan(null);
     setShowForm(false);
+    setErrors({});
   };
 
   const handleEdit = (plan: Plan) => {
@@ -39,9 +41,25 @@ export default function AdminPlansPage() {
       price_per_month: plan.price_per_month, sort_order: plan.sort_order,
     });
     setShowForm(true);
+    setErrors({});
+  };
+
+  const validate = (): boolean => {
+    const e: Record<string, string> = {};
+    if (!form.name.trim()) e.name = "Название обязательно";
+    if (!form.slug.trim()) e.slug = "Slug обязателен";
+    else if (!/^[a-z0-9_-]+$/.test(form.slug)) e.slug = "Только a-z, 0-9, -, _";
+    if (form.cpu_cores < 1) e.cpu_cores = "Минимум 1";
+    if (form.ram_mb < 256) e.ram_mb = "Минимум 256 МБ";
+    if (form.disk_gb < 1) e.disk_gb = "Минимум 1 ГБ";
+    if (form.price_per_hour <= 0) e.price_per_hour = "Должна быть > 0";
+    if (form.price_per_month <= 0) e.price_per_month = "Должна быть > 0";
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async () => {
+    if (!validate()) return;
     try {
       if (editPlan) {
         await adminApi.updatePlan(editPlan.id, form);
@@ -61,10 +79,20 @@ export default function AdminPlansPage() {
     loadPlans();
   };
 
+  const Field = ({
+    label, error, children,
+  }: { label: string; error?: string; children: React.ReactNode }) => (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</label>
+      {children}
+      {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
+    </div>
+  );
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Тарифные планы</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Тарифные планы</h1>
         <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary">
           + Добавить тариф
         </button>
@@ -73,34 +101,55 @@ export default function AdminPlansPage() {
       {/* Форма */}
       {showForm && (
         <div className="card mb-6">
-          <h2 className="font-semibold mb-4">
+          <h2 className="font-semibold mb-4 text-gray-900 dark:text-white">
             {editPlan ? "Редактировать тариф" : "Новый тариф"}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <input placeholder="Название" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="input-field" />
-            <input placeholder="Slug" value={form.slug}
-              onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              className="input-field" disabled={!!editPlan} />
-            <input type="number" placeholder="vCPU" value={form.cpu_cores}
-              onChange={(e) => setForm({ ...form, cpu_cores: +e.target.value })}
-              className="input-field" />
-            <input type="number" placeholder="RAM (МБ)" value={form.ram_mb}
-              onChange={(e) => setForm({ ...form, ram_mb: +e.target.value })}
-              className="input-field" />
-            <input type="number" placeholder="Диск (ГБ)" value={form.disk_gb}
-              onChange={(e) => setForm({ ...form, disk_gb: +e.target.value })}
-              className="input-field" />
-            <input type="number" placeholder="Трафик (ТБ)" value={form.bandwidth_tb}
-              onChange={(e) => setForm({ ...form, bandwidth_tb: +e.target.value })}
-              className="input-field" />
-            <input type="number" step="0.01" placeholder="₽/час" value={form.price_per_hour}
-              onChange={(e) => setForm({ ...form, price_per_hour: +e.target.value })}
-              className="input-field" />
-            <input type="number" placeholder="₽/мес" value={form.price_per_month}
-              onChange={(e) => setForm({ ...form, price_per_month: +e.target.value })}
-              className="input-field" />
+            <Field label="Название тарифа" error={errors.name}>
+              <input value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="input-field" placeholder="Например: Start" />
+            </Field>
+            <Field label="Slug (идентификатор)" error={errors.slug}>
+              <input value={form.slug}
+                onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                className="input-field" placeholder="start" disabled={!!editPlan} />
+            </Field>
+            <Field label="vCPU (ядра)" error={errors.cpu_cores}>
+              <input type="number" value={form.cpu_cores} min={1}
+                onChange={(e) => setForm({ ...form, cpu_cores: +e.target.value })}
+                className="input-field" />
+            </Field>
+            <Field label="RAM (МБ)" error={errors.ram_mb}>
+              <input type="number" value={form.ram_mb} min={256} step={256}
+                onChange={(e) => setForm({ ...form, ram_mb: +e.target.value })}
+                className="input-field" />
+            </Field>
+            <Field label="Диск (ГБ)" error={errors.disk_gb}>
+              <input type="number" value={form.disk_gb} min={1}
+                onChange={(e) => setForm({ ...form, disk_gb: +e.target.value })}
+                className="input-field" />
+            </Field>
+            <Field label="Трафик (ТБ)">
+              <input type="number" value={form.bandwidth_tb} min={0} step={0.5}
+                onChange={(e) => setForm({ ...form, bandwidth_tb: +e.target.value })}
+                className="input-field" />
+            </Field>
+            <Field label="Цена за час (₽)" error={errors.price_per_hour}>
+              <input type="number" step="0.01" value={form.price_per_hour} min={0.01}
+                onChange={(e) => setForm({ ...form, price_per_hour: +e.target.value })}
+                className="input-field" />
+            </Field>
+            <Field label="Цена за месяц (₽)" error={errors.price_per_month}>
+              <input type="number" value={form.price_per_month} min={1}
+                onChange={(e) => setForm({ ...form, price_per_month: +e.target.value })}
+                className="input-field" />
+            </Field>
+            <Field label="Порядок сортировки">
+              <input type="number" value={form.sort_order} min={0}
+                onChange={(e) => setForm({ ...form, sort_order: +e.target.value })}
+                className="input-field" />
+            </Field>
           </div>
           <div className="flex gap-2 mt-4">
             <button onClick={handleSubmit} className="btn-primary">
@@ -115,7 +164,7 @@ export default function AdminPlansPage() {
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left text-gray-500">
+            <tr className="border-b text-left text-gray-500 dark:text-gray-400">
               <th className="pb-3 pr-4">ID</th>
               <th className="pb-3 pr-4">Название</th>
               <th className="pb-3 pr-4">vCPU</th>
@@ -123,12 +172,13 @@ export default function AdminPlansPage() {
               <th className="pb-3 pr-4">Диск</th>
               <th className="pb-3 pr-4">₽/час</th>
               <th className="pb-3 pr-4">₽/мес</th>
+              <th className="pb-3 pr-4">Порядок</th>
               <th className="pb-3">Действия</th>
             </tr>
           </thead>
           <tbody>
             {plans.map((plan) => (
-              <tr key={plan.id} className="border-b border-gray-100">
+              <tr key={plan.id} className="border-b border-gray-100 dark:border-gray-700">
                 <td className="py-3 pr-4">{plan.id}</td>
                 <td className="py-3 pr-4 font-medium">{plan.name}</td>
                 <td className="py-3 pr-4">{plan.cpu_cores}</td>
@@ -136,6 +186,7 @@ export default function AdminPlansPage() {
                 <td className="py-3 pr-4">{plan.disk_gb} ГБ</td>
                 <td className="py-3 pr-4">{plan.price_per_hour}</td>
                 <td className="py-3 pr-4">{plan.price_per_month}</td>
+                <td className="py-3 pr-4">{plan.sort_order}</td>
                 <td className="py-3">
                   <button onClick={() => handleEdit(plan)}
                     className="text-primary-600 hover:underline mr-3">Изменить</button>

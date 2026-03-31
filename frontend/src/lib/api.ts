@@ -201,18 +201,43 @@ export const adminApi = {
   updateNode: (id: number, data: Partial<Node>) =>
     api.put<Node>(`/admin/nodes/${id}`, data),
   deleteNode: (id: number) => api.delete(`/admin/nodes/${id}`),
+  testNode: (data: {
+    hostname: string; port: number; api_user: string;
+    api_token_name: string; api_token_value: string;
+  }) => api.post<{ success: boolean; version?: string; release?: string; error?: string }>(
+    "/admin/nodes/test", data
+  ),
 
   // Серверы
   listServers: (page = 1) =>
     api.get<Server[]>("/admin/servers", { params: { page } }),
   serverAction: (id: number, action: string) =>
     api.post<Server>(`/admin/servers/${id}/action`, { action }),
+  deleteServer: (id: number) => api.delete(`/admin/servers/${id}`),
 
   // Пользователи
   listUsers: (page = 1) =>
     api.get<User[]>("/admin/users", { params: { page } }),
   depositUser: (userId: number, amount: number) =>
     api.post<Transaction>(`/admin/users/${userId}/deposit`, { amount }),
+  toggleUser: (userId: number, is_active: boolean) =>
+    api.put<User>(`/admin/users/${userId}/toggle`, { is_active }),
+  setUserRole: (userId: number, role: string) =>
+    api.put<User>(`/admin/users/${userId}/role`, { role }),
+  resetUserPassword: (userId: number, new_password: string) =>
+    api.post(`/admin/users/${userId}/reset-password`, { new_password }),
+
+  // Статистика
+  getStats: () => api.get<{
+    total_users: number; total_servers: number; active_servers: number;
+    total_nodes: number; total_revenue: number;
+    server_statuses: Record<string, number>;
+    nodes_load: Array<{ id: number; name: string; cpu_usage: number; ram_usage: number; disk_usage: number }>;
+    recent_logs: Array<{
+      id: number; user_id: number; action: string;
+      target_type: string; target_id: number; details: string | null; created_at: string;
+    }>;
+  }>("/admin/stats"),
 
   // Транзакции
   listTransactions: (page = 1) =>

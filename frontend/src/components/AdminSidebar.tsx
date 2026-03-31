@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "@/lib/ThemeContext";
 
 const MENU_ITEMS = [
   { href: "/admin", label: "Обзор", icon: "📊" },
@@ -13,16 +14,24 @@ const MENU_ITEMS = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const { dark, toggleDark } = useTheme();
 
   return (
-    <aside className="w-64 bg-dark-800 text-white min-h-screen p-6">
-      <div className="mb-8">
+    <aside className="w-64 bg-dark-800 text-white min-h-screen p-6 flex flex-col">
+      <div className="mb-8 flex items-center justify-between">
         <Link href="/admin" className="text-lg font-bold text-primary-400">
           ∞ Admin Panel
         </Link>
+        <button
+          onClick={toggleDark}
+          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-lg"
+          title={dark ? "Светлая тема" : "Тёмная тема"}
+        >
+          {dark ? "☀️" : "🌙"}
+        </button>
       </div>
 
-      <nav className="space-y-1">
+      <nav className="space-y-1 flex-1">
         {MENU_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           return (
