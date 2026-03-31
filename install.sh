@@ -795,13 +795,13 @@ set +e
 if [[ "$USE_MANUAL_BUILD" -eq 1 ]]; then
     {
         echo "[fallback] docker build backend"
-        docker build --no-cache -t infinitycloud-backend:latest -f backend/Dockerfile backend
+        DOCKER_BUILDKIT=1 docker build --no-cache -t infinitycloud-backend:latest -f backend/Dockerfile backend
         echo "[fallback] docker build worker"
-        docker build --no-cache -t infinitycloud-worker:latest -f worker/Dockerfile worker
+        DOCKER_BUILDKIT=1 docker build --no-cache -t infinitycloud-worker:latest -f worker/Dockerfile worker
         echo "[fallback] docker tag worker -> beat"
         docker tag infinitycloud-worker:latest infinitycloud-beat:latest
         echo "[fallback] docker build frontend"
-        docker build --no-cache -t infinitycloud-frontend:latest -f frontend/Dockerfile frontend
+        DOCKER_BUILDKIT=1 docker build --no-cache -t infinitycloud-frontend:latest -f frontend/Dockerfile frontend
     } 2>&1 | tee "$BUILD_LOG"
     BUILD_EXIT_CODE=${PIPESTATUS[0]}
 else
@@ -892,10 +892,10 @@ if docker buildx version >/dev/null 2>&1; then
     NO_BUILD_FLAG=""
 else
     echo "[fallback] Buildx не найден, использую docker build"
-    docker build --no-cache -t infinitycloud-backend:latest -f backend/Dockerfile backend
-    docker build --no-cache -t infinitycloud-worker:latest -f worker/Dockerfile worker
+    DOCKER_BUILDKIT=1 docker build --no-cache -t infinitycloud-backend:latest -f backend/Dockerfile backend
+    DOCKER_BUILDKIT=1 docker build --no-cache -t infinitycloud-worker:latest -f worker/Dockerfile worker
     docker tag infinitycloud-worker:latest infinitycloud-beat:latest
-    docker build --no-cache -t infinitycloud-frontend:latest -f frontend/Dockerfile frontend
+    DOCKER_BUILDKIT=1 docker build --no-cache -t infinitycloud-frontend:latest -f frontend/Dockerfile frontend
     NO_BUILD_FLAG="--no-build"
 fi
 
