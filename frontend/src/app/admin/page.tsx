@@ -10,8 +10,8 @@ interface Stats {
   total_revenue: number;
   active_servers: number;
   server_statuses: Record<string, number>;
-  nodes_load: { id: number; name: string; current_vms: number; max_vms: number }[];
-  recent_logs: { id: number; message: string; created_at: string }[];
+  nodes_load: { id: number; name: string; cpu_usage: number; ram_usage: number; disk_usage: number }[];
+  recent_logs: { id: number; user_id: number; action: string; target_type: string; target_id: number; details: string; created_at: string }[];
 }
 
 const statusColors: Record<string, string> = {
@@ -103,21 +103,25 @@ export default function AdminDashboard() {
           {stats.nodes_load.length === 0 ? (
             <div className="text-sm text-gray-400">Нет нод</div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {stats.nodes_load.map((node) => {
-                const pct = node.max_vms > 0 ? Math.round((node.current_vms / node.max_vms) * 100) : 0;
-                const barColor = pct > 80 ? "bg-red-500" : pct > 50 ? "bg-yellow-500" : "bg-green-500";
+                const barColor = (v: number) => v > 80 ? "bg-red-500" : v > 50 ? "bg-yellow-500" : "bg-green-500";
+                const Bar = ({ label, value }: { label: string; value: number }) => (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 w-10">{label}</span>
+                    <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div className={`${barColor(value)} h-2 rounded-full transition-all`} style={{ width: `${value}%` }} />
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 w-10 text-right">{value}%</span>
+                  </div>
+                );
                 return (
                   <div key={node.id}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-700 dark:text-gray-300">{node.name}</span>
-                      <span className="text-gray-500 dark:text-gray-400">
-                        {node.current_vms}/{node.max_vms} VM ({pct}%)
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                      <div className={`${barColor} h-2.5 rounded-full transition-all`}
-                        style={{ width: `${pct}%` }} />
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{node.name}</div>
+                    <div className="space-y-1">
+                      <Bar label="CPU" value={node.cpu_usage} />
+                      <Bar label="RAM" value={node.ram_usage} />
+                      <Bar label="Disk" value={node.disk_usage} />
                     </div>
                   </div>
                 );
@@ -139,7 +143,11 @@ export default function AdminDashboard() {
                 <span className="text-gray-400 dark:text-gray-500 whitespace-nowrap">
                   {new Date(log.created_at).toLocaleString("ru", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                 </span>
-                <span className="text-gray-700 dark:text-gray-300">{log.message}</span>
+                <span className="text-gray-700 dark:text-gray-300">
+                  <span className="font-medium">{log.action}</span>
+                  {log.target_type && <span className="text-gray-400"> → {log.target_type} #{log.target_id}</span>}
+                  {log.details && <span className="text-gray-400 dark:text-gray-500"> · {log.details}</span>}
+                </span>
               </div>
             ))}
           </div>
