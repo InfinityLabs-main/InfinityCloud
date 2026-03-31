@@ -788,6 +788,13 @@ fi
 header "Сборка и запуск Infinity Cloud"
 
 cd "$INSTALL_DIR"
+
+# Останавливаем старые контейнеры и удаляем тома (пароль PG мог измениться)
+if $COMPOSE_CMD -f "$COMPOSE_FILE" ps -q 2>/dev/null | grep -q .; then
+    warn "Обнаружены запущенные контейнеры — останавливаем и удаляем старые тома…"
+    $COMPOSE_CMD -f "$COMPOSE_FILE" down -v --remove-orphans 2>/dev/null || true
+fi
+
 info "Сборка Docker-образов (это может занять 3-5 минут)…"
 
 BUILD_LOG="${INSTALL_DIR}/install-build.log"
