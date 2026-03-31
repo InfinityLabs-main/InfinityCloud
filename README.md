@@ -253,14 +253,15 @@ InfinityCloud/
 На чистом сервере (Ubuntu 20.04+ / Debian 11+ / CentOS 8+ / Rocky / Alma):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/InfinityLabs-main/InfinityCloud/main/install.sh)
+git clone https://github.com/InfinityLabs-main/InfinityCloud.git /tmp/infinitycloud && sudo bash /tmp/infinitycloud/install.sh
 ```
 
-Или в два шага:
+Если репозиторий приватный, `install.sh` сам запросит GitHub PAT во время установки (токен не нужно вставлять в URL).
+
+Если репозиторий публичный, можно через raw:
 
 ```bash
-curl -Lo install.sh https://raw.githubusercontent.com/InfinityLabs-main/InfinityCloud/main/install.sh
-sudo bash install.sh
+bash <(curl -Ls https://raw.githubusercontent.com/InfinityLabs-main/InfinityCloud/main/install.sh)
 ```
 
 Один скрипт устанавливает всё: Docker, зависимости, SSL-сертификат, создаёт администратора.

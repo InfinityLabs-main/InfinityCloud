@@ -2,11 +2,11 @@
 # ═══════════════════════════════════════════════════════════════════
 #  Infinity Cloud — Автоматический установщик
 #
-#  Установка одной командой:
-#    bash <(curl -Ls https://raw.githubusercontent.com/InfinityLabs-main/InfinityCloud/main/install.sh)
+#  Установка одной командой (работает и для private repo при доступе по git):
+#    git clone https://github.com/InfinityLabs-main/InfinityCloud.git /tmp/infinitycloud && sudo bash /tmp/infinitycloud/install.sh
 #
-#  Или скачать и запустить:
-#    curl -Lo install.sh https://raw.githubusercontent.com/InfinityLabs-main/InfinityCloud/main/install.sh && sudo bash install.sh
+#  Вариант через raw (только если репозиторий публичный):
+#    bash <(curl -Ls https://raw.githubusercontent.com/InfinityLabs-main/InfinityCloud/main/install.sh)
 #
 # ═══════════════════════════════════════════════════════════════════
 set -euo pipefail
@@ -28,6 +28,7 @@ INSTALL_DIR="/opt/infinitycloud"
 COMPOSE_FILE="docker-compose.prod.yml"
 ADMIN_EMAIL="admin@infinity.cloud"
 ADMIN_PASSWORD="admin"
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 
 # ── Логирование ───────────────────────────────────────────────────
 log()   { echo -e "${GREEN}[✓]${NC} $1"; }
@@ -35,6 +36,35 @@ warn()  { echo -e "${YELLOW}[!]${NC} $1"; }
 error() { echo -e "${RED}[✗]${NC} $1"; }
 info()  { echo -e "${CYAN}[i]${NC} $1"; }
 header(){ echo -e "\n${BOLD}═══ $1 ═══${NC}\n"; }
+
+build_repo_url_with_token() {
+    local token="$1"
+    echo "https://x-access-token:${token}@github.com/InfinityLabs-main/InfinityCloud.git"
+}
+
+clone_repo_with_auth_fallback() {
+    if git clone --depth 1 "$REPO_URL" "$INSTALL_DIR" 2>/dev/null; then
+        return 0
+    fi
+
+    warn "Не удалось клонировать репозиторий без авторизации (возможно, репозиторий приватный)."
+    info "Нужен GitHub Personal Access Token (PAT) с доступом на чтение репозитория."
+
+    if [[ -z "$GITHUB_TOKEN" ]]; then
+        read -rsp "Введите GitHub PAT: " GITHUB_TOKEN
+        echo ""
+    fi
+
+    if [[ -z "$GITHUB_TOKEN" ]]; then
+        error "Токен не указан. Установка прервана."
+        return 1
+    fi
+
+    local auth_repo_url
+    auth_repo_url=$(build_repo_url_with_token "$GITHUB_TOKEN")
+
+    git clone --depth 1 "$auth_repo_url" "$INSTALL_DIR" 2>/dev/null
+}
 
 # ── Проверка root ─────────────────────────────────────────────────
 if [[ $EUID -ne 0 ]]; then
@@ -243,8 +273,10 @@ if [[ -d "$INSTALL_DIR" ]]; then
     fi
 fi
 
-git clone --depth 1 "$REPO_URL" "$INSTALL_DIR" 2>/dev/null
+clone_repo_with_auth_fallback
 cd "$INSTALL_DIR"
+git remote set-url origin "$REPO_URL" >/dev/null 2>&1 || true
+unset GITHUB_TOKEN
 log "Репозиторий клонирован в ${BOLD}${INSTALL_DIR}${NC}"
 
 # ═══════════════════════════════════════════════════════════════════
@@ -742,12 +774,19 @@ header "Сборка и запуск Infinity Cloud"
 cd "$INSTALL_DIR"
 info "Сборка Docker-образов (это может занять 3-5 минут)…"
 
-$COMPOSE_CMD -f "$COMPOSE_FILE" build --no-cache 2>&1 | while IFS= read -r line; do
-    # Показываем только ключевые строки сборки
-    if echo "$line" | grep -qE '(Step|Successfully|Building|#[0-9]+)'; then
-        echo -e "  ${CYAN}│${NC} $line"
-    fi
-done
+BUILD_LOG="${INSTALL_DIR}/install-build.log"
+set +e
+$COMPOSE_CMD -f "$COMPOSE_FILE" build --no-cache 2>&1 | tee "$BUILD_LOG"
+BUILD_EXIT_CODE=${PIPESTATUS[0]}
+set -e
+
+if [[ $BUILD_EXIT_CODE -ne 0 ]]; then
+    error "Сборка Docker-образов завершилась ошибкой (код: ${BUILD_EXIT_CODE})."
+    warn "Последние строки лога сборки:"
+    tail -n 60 "$BUILD_LOG" || true
+    error "Полный лог: ${BUILD_LOG}"
+    exit $BUILD_EXIT_CODE
+fi
 
 info "Запуск контейнеров…"
 $COMPOSE_CMD -f "$COMPOSE_FILE" up -d
