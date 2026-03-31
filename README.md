@@ -248,7 +248,52 @@ InfinityCloud/
 
 ## 🚀 Быстрый старт
 
-### 1. Клонировать и настроить
+### ⚡ Установка одной командой
+
+На чистом сервере (Ubuntu 20.04+ / Debian 11+ / CentOS 8+ / Rocky / Alma):
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/InfinityLabs-main/InfinityCloud/main/install.sh)
+```
+
+Или в два шага:
+
+```bash
+curl -Lo install.sh https://raw.githubusercontent.com/InfinityLabs-main/InfinityCloud/main/install.sh
+sudo bash install.sh
+```
+
+Один скрипт устанавливает всё: Docker, зависимости, SSL-сертификат, создаёт администратора.
+
+**Что делает `install.sh`:**
+- ✅ Определяет ОС и устанавливает все системные зависимости
+- ✅ Устанавливает Docker + Docker Compose (если не установлены)
+- ✅ Спрашивает доменное имя (или определяет IP сервера)
+- ✅ Автоматически получает SSL-сертификат Let's Encrypt
+- ✅ Генерирует безопасные секреты (JWT, пароль БД)
+- ✅ Создаёт администратора `admin@infinity.cloud` / `admin`
+- ✅ Настраивает Nginx reverse proxy (HTTP → HTTPS)
+- ✅ Настраивает фаервол (UFW / firewalld)
+- ✅ Собирает и запускает все контейнеры
+- ✅ Создаёт утилиты: `restart.sh`, `update.sh`, `logs.sh`, `uninstall.sh`
+
+**Утилиты после установки:**
+```bash
+ic-restart   # Перезапуск всех контейнеров
+ic-update    # Обновление из репозитория + пересборка
+ic-logs      # Просмотр логов (все или конкретный сервис: ic-logs backend)
+```
+
+**Удаление:**
+```bash
+sudo /opt/infinitycloud/uninstall.sh
+```
+
+---
+
+### 🔧 Ручная установка (для разработки)
+
+#### 1. Клонировать и настроить
 ```bash
 git clone https://github.com/InfinityLabs-main/InfinityCloud.git
 cd InfinityCloud
@@ -256,7 +301,7 @@ cp .env.example .env
 # Отредактируйте .env — укажите реальные значения
 ```
 
-### 2. Запустить
+#### 2. Запустить
 ```bash
 docker-compose up -d --build
 ```
@@ -266,7 +311,7 @@ docker-compose up -d --build
 - **Backend API:** http://localhost:8000
 - **API Docs (Swagger):** http://localhost:8000/docs
 
-### 3. Миграции применяются автоматически
+#### 3. Миграции применяются автоматически
 Backend выполняет `alembic upgrade head` при старте.  
 Администратор создаётся автоматически из `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
