@@ -50,9 +50,13 @@ clone_repo_with_auth_fallback() {
 
     warn "Не удалось клонировать репозиторий без авторизации (возможно, репозиторий приватный)."
     info "Нужен GitHub Personal Access Token (PAT) с доступом на чтение репозитория."
+    info "Создать токен: GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens"
+    info "Нужен scope: ${BOLD}Contents: Read-only${NC} для репозитория InfinityCloud"
+    echo ""
 
     if [[ -z "$GITHUB_TOKEN" ]]; then
-        read -rsp "Введите GitHub PAT: " GITHUB_TOKEN
+        echo -ne "  Введите GitHub PAT (ввод скрыт): "
+        read -rs GITHUB_TOKEN </dev/tty
         echo ""
     fi
 
@@ -61,10 +65,21 @@ clone_repo_with_auth_fallback() {
         return 1
     fi
 
+    info "Попытка клонирования с токеном…"
     local auth_repo_url
     auth_repo_url=$(build_repo_url_with_token "$GITHUB_TOKEN")
 
-    git clone --depth 1 "$auth_repo_url" "$INSTALL_DIR" 2>/dev/null
+    local clone_err
+    if clone_err=$(git clone --depth 1 "$auth_repo_url" "$INSTALL_DIR" 2>&1); then
+        return 0
+    else
+        # Очищаем токен из вывода ошибки
+        clone_err=$(echo "$clone_err" | sed "s|${GITHUB_TOKEN}|***|g")
+        error "Клонирование с токеном не удалось:"
+        echo "  $clone_err"
+        error "Проверьте, что токен действителен и имеет доступ к репозиторию."
+        return 1
+    fi
 }
 
 # ── Проверка root ─────────────────────────────────────────────────
