@@ -536,9 +536,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-infinity}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-infinity_secret}
-      POSTGRES_DB: ${POSTGRES_DB:-infinity_cloud}
+      POSTGRES_USER: "${POSTGRES_USER:-infinity}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-infinity_secret}"
+      POSTGRES_DB: "${POSTGRES_DB:-infinity_cloud}"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -613,10 +613,12 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}    restart: unless-stopped
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://localhost:8000}"
+    restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://localhost:8000}"
     depends_on:
       - backend
     networks:
