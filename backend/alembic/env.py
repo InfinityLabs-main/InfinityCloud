@@ -2,7 +2,11 @@
 Alembic env.py — конфигурация миграций.
 """
 import os
+import sys
 from logging.config import fileConfig
+
+# Гарантируем, что корень проекта в sys.path (нужно для import app.*)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool

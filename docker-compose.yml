@@ -12,7 +12,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U infinity"]
+      test: ["CMD-SHELL", "pg_isready -U infinity -d infinity_cloud"]
       interval: 5s
       retries: 5
 

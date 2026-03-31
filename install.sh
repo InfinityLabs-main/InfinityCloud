@@ -542,7 +542,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-infinity}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-infinity} -d ${POSTGRES_DB:-infinity_cloud}"]
       interval: 5s
       retries: 5
     networks:
