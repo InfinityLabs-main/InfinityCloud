@@ -349,7 +349,7 @@ PROXMOX_TOKEN_VALUE=change-me
 PROXMOX_VERIFY_SSL=false
 
 # ── URL-ы ─────────────────────────────────────────────
-NEXT_PUBLIC_API_URL=${BASE_URL}/api
+NEXT_PUBLIC_API_URL=${BASE_URL}
 CORS_ORIGINS=${BASE_URL},http://localhost:3000
 
 # ── Безопасность ──────────────────────────────────────
@@ -613,8 +613,8 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    restart: unless-stopped
+      dockerfile: Dockerfile      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}    restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
@@ -808,7 +808,7 @@ if [[ "$USE_MANUAL_BUILD" -eq 1 ]]; then
         echo "[fallback] docker tag worker -> beat"
         docker tag infinitycloud-worker:latest infinitycloud-beat:latest
         echo "[fallback] docker build frontend"
-        DOCKER_BUILDKIT=0 docker build --no-cache -t infinitycloud-frontend:latest -f frontend/Dockerfile frontend
+        DOCKER_BUILDKIT=0 docker build --no-cache --build-arg NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:8000}" -t infinitycloud-frontend:latest -f frontend/Dockerfile frontend
     } 2>&1 | tee "$BUILD_LOG"
     BUILD_EXIT_CODE=${PIPESTATUS[0]}
 else
@@ -902,7 +902,7 @@ else
     DOCKER_BUILDKIT=0 docker build --no-cache -t infinitycloud-backend:latest -f backend/Dockerfile backend
     DOCKER_BUILDKIT=0 docker build --no-cache -t infinitycloud-worker:latest -f worker/Dockerfile worker
     docker tag infinitycloud-worker:latest infinitycloud-beat:latest
-    DOCKER_BUILDKIT=0 docker build --no-cache -t infinitycloud-frontend:latest -f frontend/Dockerfile frontend
+    DOCKER_BUILDKIT=0 docker build --no-cache --build-arg NEXT_PUBLIC_API_URL="\${NEXT_PUBLIC_API_URL:-http://localhost:8000}" -t infinitycloud-frontend:latest -f frontend/Dockerfile frontend
     NO_BUILD_FLAG="--no-build"
 fi
 
