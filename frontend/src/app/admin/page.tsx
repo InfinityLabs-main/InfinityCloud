@@ -11,7 +11,7 @@ interface Stats {
   active_servers: number;
   server_statuses: Record<string, number>;
   nodes_load: { id: number; name: string; cpu_usage: number; ram_usage: number; disk_usage: number }[];
-  recent_logs: { id: number; user_id: number; action: string; target_type: string; target_id: number; details: string; created_at: string }[];
+  recent_logs: { id: number; user_id: number; action: string; target_type: string; target_id: number; details: string | null; created_at: string }[];
 }
 
 const statusColors: Record<string, string> = {
