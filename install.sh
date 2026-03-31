@@ -212,11 +212,11 @@ else
           $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
 
         apt-get update -qq
-        apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin > /dev/null 2>&1
+        apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin > /dev/null 2>&1
 
     elif [[ "$PKG_MGR" == "yum" ]]; then
         yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo > /dev/null 2>&1
-        yum install -y -q docker-ce docker-ce-cli containerd.io docker-compose-plugin > /dev/null 2>&1
+        yum install -y -q docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin > /dev/null 2>&1
     fi
 
     systemctl enable docker --now > /dev/null 2>&1
@@ -232,10 +232,27 @@ elif command -v docker-compose &> /dev/null; then
     log "Docker Compose (standalone): $(docker-compose --version | awk '{print $4}' | tr -d ',')"
 else
     info "Устанавливаю Docker Compose plugin…"
-    apt-get install -y -qq docker-compose-plugin > /dev/null 2>&1 || \
-    yum install -y -q docker-compose-plugin > /dev/null 2>&1 || true
+    apt-get install -y -qq docker-compose-plugin docker-buildx-plugin > /dev/null 2>&1 || \
+    yum install -y -q docker-compose-plugin docker-buildx-plugin > /dev/null 2>&1 || true
     COMPOSE_CMD="docker compose"
     log "Docker Compose установлен"
+fi
+
+# Buildx необходим для docker compose build
+if ! docker buildx version &> /dev/null; then
+    warn "Docker Buildx не найден. Пытаюсь установить docker-buildx-plugin…"
+    if [[ "$PKG_MGR" == "apt" ]]; then
+        apt-get install -y -qq docker-buildx-plugin > /dev/null 2>&1 || true
+    else
+        yum install -y -q docker-buildx-plugin > /dev/null 2>&1 || true
+    fi
+fi
+
+if docker buildx version &> /dev/null; then
+    log "Docker Buildx: $(docker buildx version | head -n1)"
+else
+    error "Docker Buildx недоступен. Установите plugin и повторите запуск."
+    exit 1
 fi
 
 # ═══════════════════════════════════════════════════════════════════
@@ -512,8 +529,6 @@ fi
 header "Генерация production Docker Compose"
 
 cat > "${INSTALL_DIR}/docker-compose.prod.yml" << 'COMPOSEFILE'
-version: "3.9"
-
 services:
   # ─── PostgreSQL ──────────────────────────────────────
   postgres:
