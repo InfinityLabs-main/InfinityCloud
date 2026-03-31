@@ -900,7 +900,7 @@ else
 fi
 
 ${COMPOSE_CMD} -f ${COMPOSE_FILE} down
-${COMPOSE_CMD} -f ${COMPOSE_FILE} up -d ${NO_BUILD_FLAG}
+${COMPOSE_CMD} -f ${COMPOSE_FILE} up -d \${NO_BUILD_FLAG}
 echo "✅ Infinity Cloud обновлён!"
 UPDATESH
 chmod +x "${INSTALL_DIR}/update.sh"
