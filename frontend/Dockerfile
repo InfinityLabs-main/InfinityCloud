@@ -9,7 +9,12 @@ ENV npm_config_loglevel=error \
 	NEXT_TELEMETRY_DISABLED=1
 
 COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci --no-fund --no-audit --loglevel=error; else npm install --no-fund --no-audit --loglevel=error; fi
+RUN set -e; \
+	if [ -f package-lock.json ]; then \
+		npm ci --no-fund --no-audit --loglevel=error || (rm -f package-lock.json && npm install --no-fund --no-audit --loglevel=error); \
+	else \
+		npm install --no-fund --no-audit --loglevel=error; \
+	fi
 
 COPY . .
 RUN mkdir -p public
