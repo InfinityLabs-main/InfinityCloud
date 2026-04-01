@@ -32,6 +32,9 @@ export default function Navbar() {
                 <Link href="/dashboard/create" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Создать VPS
                 </Link>
+                <Link href="/dashboard/tickets" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Поддержка
+                </Link>
                 {isAdmin() && (
                   <Link href="/admin" className="text-sm text-purple-400 hover:text-purple-300 font-medium transition-colors">
                     Админка

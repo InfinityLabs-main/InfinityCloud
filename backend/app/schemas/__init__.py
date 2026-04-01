@@ -3,3 +3,4 @@ from app.schemas.server import *
 from app.schemas.plan import *
 from app.schemas.node import *
 from app.schemas.transaction import *
+from app.schemas.ticket import *

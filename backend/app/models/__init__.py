@@ -9,6 +9,7 @@ from app.models.transaction import Transaction
 from app.models.ip_address import IPAddress
 from app.models.os_template import OSTemplate
 from app.models.activity_log import ActivityLog
+from app.models.ticket import Ticket, TicketMessage, TicketAttachment
 
 __all__ = [
     "User",
@@ -19,4 +20,7 @@ __all__ = [
     "IPAddress",
     "OSTemplate",
     "ActivityLog",
+    "Ticket",
+    "TicketMessage",
+    "TicketAttachment",
 ]

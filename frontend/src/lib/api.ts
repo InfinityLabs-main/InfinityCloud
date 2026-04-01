@@ -296,6 +296,94 @@ export const adminApi = {
   // Логи
   listLogs: (page = 1) =>
     api.get("/admin/logs", { params: { page } }),
+
+  // Тикеты
+  listTickets: (params?: {
+    status?: string; priority?: string; category?: string; user_id?: number; page?: number;
+  }) => api.get("/admin/tickets", { params }),
+  getTicket: (id: number) => api.get(`/admin/tickets/${id}`),
+  replyTicket: (id: number, body: string) =>
+    api.post(`/admin/tickets/${id}/reply`, { body }),
+  updateTicketStatus: (id: number, status: string) =>
+    api.patch(`/admin/tickets/${id}/status`, { status }),
+  deleteTicket: (id: number) => api.delete(`/admin/tickets/${id}`),
+  compensateTicket: (id: number, amount: number, reason: string) =>
+    api.post(`/admin/tickets/${id}/compensate`, { amount, reason }),
+  ticketVpsAction: (id: number, action: string) =>
+    api.post(`/admin/tickets/${id}/vps-action`, { action }),
+  getTicketUserInfo: (id: number) => api.get(`/admin/tickets/${id}/user-info`),
+};
+
+// ═══════════════════════════════════════════════════
+//  Тикеты (клиентское API)
+// ═══════════════════════════════════════════════════
+
+export interface Ticket {
+  id: number;
+  user_id: number;
+  server_id: number | null;
+  subject: string;
+  priority: string;
+  category: string;
+  status: string;
+  is_read_by_user: boolean;
+  is_read_by_admin: boolean;
+  user_email: string | null;
+  server_hostname: string | null;
+  message_count: number;
+  last_message_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TicketMessage {
+  id: number;
+  ticket_id: number;
+  sender_id: number;
+  sender_role: string;
+  sender_email: string | null;
+  body: string;
+  is_read: boolean;
+  attachments: Array<{
+    id: number;
+    filename: string;
+    original_filename: string;
+    content_type: string;
+    size_bytes: number;
+    created_at: string;
+  }>;
+  created_at: string;
+}
+
+export interface TicketDetail extends Ticket {
+  messages: TicketMessage[];
+}
+
+export const ticketApi = {
+  list: (params?: { status?: string; page?: number }) =>
+    api.get<{ items: Ticket[]; total: number; page: number; per_page: number }>(
+      "/tickets", { params }
+    ),
+  get: (id: number) => api.get<TicketDetail>(`/tickets/${id}`),
+  create: (data: {
+    subject: string;
+    body: string;
+    priority?: string;
+    category?: string;
+    server_id?: number | null;
+  }) => api.post<TicketDetail>("/tickets", data),
+  sendMessage: (id: number, body: string) =>
+    api.post(`/tickets/${id}/messages`, { body }),
+  uploadAttachment: (ticketId: number, messageId: number, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api.post(
+      `/tickets/${ticketId}/messages/${messageId}/attachments`,
+      fd,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+  },
+  close: (id: number) => api.patch(`/tickets/${id}/close`),
 };
 
 export default api;

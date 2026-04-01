@@ -9,6 +9,7 @@ const MENU_ITEMS = [
   { href: "/admin/nodes", label: "Ноды", icon: "🖥️" },
   { href: "/admin/servers", label: "Серверы", icon: "☁️" },
   { href: "/admin/users", label: "Пользователи", icon: "👤" },
+  { href: "/admin/tickets", label: "Тикеты", icon: "🎫" },
 ];
 
 export default function AdminSidebar() {

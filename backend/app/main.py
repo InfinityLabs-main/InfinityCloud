@@ -20,7 +20,7 @@ from app.middleware.correlation_id import CorrelationIdMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 
 # Импорт роутеров
-from app.routers import admin, auth, console, payments, plans, public, servers, users
+from app.routers import admin, auth, console, payments, plans, public, servers, tickets, users
 
 
 # ── Structured JSON Logging (ELK/Loki) ───────────────
@@ -179,6 +179,7 @@ app.include_router(console.router, prefix="/api/v1/console", tags=["Консол
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Админ-панель"])
 app.include_router(payments.router, prefix="/api/v1/payments", tags=["Платежи"])
 app.include_router(public.router, prefix="/api/v1/public", tags=["Публичное"])
+app.include_router(tickets.router, prefix="/api/v1/tickets", tags=["Тикеты"])
 
 # Backward-compatible aliases (без версии)
 app.include_router(auth.router, prefix="/api/auth", tags=["Авторизация"], include_in_schema=False)
@@ -189,6 +190,7 @@ app.include_router(console.router, prefix="/api/console", tags=["Консоль"
 app.include_router(admin.router, prefix="/api/admin", tags=["Админ-панель"], include_in_schema=False)
 app.include_router(payments.router, prefix="/api/payments", tags=["Платежи"], include_in_schema=False)
 app.include_router(public.router, prefix="/api/public", tags=["Публичное"], include_in_schema=False)
+app.include_router(tickets.router, prefix="/api/tickets", tags=["Тикеты"], include_in_schema=False)
 
 
 # ── Health Check (с DB + Redis) ──────────────────────
@@ -256,3 +258,133 @@ async def websocket_servers(ws: WebSocket):
         pass
     finally:
         ws_manager.disconnect(user_id, ws)
+
+
+# ── WebSocket для real-time обновлений тикетов ───────
+class TicketWSManager:
+    """Управление WS-подключениями для системы тикетов."""
+
+    def __init__(self):
+        self._connections: dict[int, list[WebSocket]] = {}  # user_id → [ws, ...]
+        self._admin_connections: list[WebSocket] = []
+        self._redis: aioredis.Redis | None = None
+
+    async def connect_user(self, user_id: int, ws: WebSocket):
+        self._connections.setdefault(user_id, []).append(ws)
+
+    async def connect_admin(self, ws: WebSocket):
+        self._admin_connections.append(ws)
+
+    def disconnect_user(self, user_id: int, ws: WebSocket):
+        if user_id in self._connections:
+            self._connections[user_id] = [w for w in self._connections[user_id] if w != ws]
+            if not self._connections[user_id]:
+                del self._connections[user_id]
+
+    def disconnect_admin(self, ws: WebSocket):
+        self._admin_connections = [w for w in self._admin_connections if w != ws]
+
+    async def send_to_user(self, user_id: int, data: dict):
+        if user_id in self._connections:
+            dead = []
+            for ws in self._connections[user_id]:
+                try:
+                    await ws.send_json(data)
+                except Exception:
+                    dead.append(ws)
+            for ws in dead:
+                self.disconnect_user(user_id, ws)
+
+    async def send_to_admins(self, data: dict):
+        dead = []
+        for ws in self._admin_connections:
+            try:
+                await ws.send_json(data)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self.disconnect_admin(ws)
+
+    async def start_redis_listener(self):
+        """Подписка на Redis PubSub канал ticket_updates."""
+        try:
+            self._redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+            pubsub = self._redis.pubsub()
+            await pubsub.subscribe("ticket_updates")
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    try:
+                        data = json.loads(message["data"])
+                        user_id = data.get("user_id")
+                        # Отправляем всем админам
+                        await self.send_to_admins(data)
+                        # Отправляем пользователю-владельцу тикета
+                        if user_id:
+                            await self.send_to_user(user_id, data)
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.error(f"Ticket Redis PubSub listener error: {e}")
+
+
+ticket_ws_manager = TicketWSManager()
+
+
+# Запускаем Redis listener для тикетов в lifespan
+_original_lifespan = app.router.lifespan_context
+
+
+@asynccontextmanager
+async def _extended_lifespan(a):
+    import asyncio as _aio
+    async with _original_lifespan(a):
+        ticket_redis_task = _aio.create_task(ticket_ws_manager.start_redis_listener())
+        yield
+        ticket_redis_task.cancel()
+        if ticket_ws_manager._redis:
+            await ticket_ws_manager._redis.close()
+
+app.router.lifespan_context = _extended_lifespan
+
+
+@app.websocket("/ws/tickets")
+async def websocket_tickets(ws: WebSocket):
+    """
+    WebSocket для real-time обновлений тикетов.
+    Клиент отправляет: {"token": "JWT_TOKEN"}
+    Сервер отправляет: {"event": "new_message", "ticket_id": 1, ...}
+    """
+    from app.services.auth import decode_access_token
+
+    await ws.accept()
+    try:
+        auth_msg = await ws.receive_json()
+        token = auth_msg.get("token", "")
+        payload = decode_access_token(token)
+        if not payload:
+            await ws.send_json({"error": "unauthorized"})
+            await ws.close(code=4001)
+            return
+        user_id = int(payload["sub"])
+        role = payload.get("role", "user")
+    except Exception:
+        await ws.close(code=4001)
+        return
+
+    if role == "admin":
+        await ticket_ws_manager.connect_admin(ws)
+    else:
+        await ticket_ws_manager.connect_user(user_id, ws)
+
+    await ws.send_json({"event": "connected", "user_id": user_id, "role": role})
+
+    try:
+        while True:
+            await ws.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        if role == "admin":
+            ticket_ws_manager.disconnect_admin(ws)
+        else:
+            ticket_ws_manager.disconnect_user(user_id, ws)

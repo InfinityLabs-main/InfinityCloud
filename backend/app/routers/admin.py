@@ -44,20 +44,33 @@ from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy.orm import selectinload
+
 from app.database import get_db
 from app.deps import get_current_admin
 from app.models.activity_log import ActivityLog
 from app.models.node import Node
 from app.models.plan import Plan
 from app.models.server import Server
+from app.models.ticket import Ticket, TicketAttachment, TicketMessage
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.schemas.node import NodeCreate, NodeOut, NodeUpdate
 from app.schemas.plan import PlanCreate, PlanOut, PlanUpdate
 from app.schemas.server import ServerAction, ServerOut
+from app.schemas.ticket import (
+    CompensationRequest,
+    MessageCreate,
+    TicketDetailOut,
+    TicketListOut,
+    TicketOut,
+    TicketStatusUpdate,
+    TicketVpsAction,
+)
 from app.schemas.transaction import TransactionListOut, TransactionOut
 from app.schemas.user import BalanceDeposit, UserOut
 from app.services.auth import hash_password
+from app.services.billing import deposit_user as billing_deposit_user
 from app.services.billing import deposit_user
 
 router = APIRouter()
@@ -537,3 +550,408 @@ async def list_logs(
         }
         for log in logs
     ]
+
+
+# ═══════════════════════════════════════════════════════
+#  ТИКЕТЫ (админ)
+# ═══════════════════════════════════════════════════════
+
+def _admin_ticket_to_out(ticket: Ticket) -> TicketOut:
+    msgs = ticket.messages or []
+    last_msg = msgs[-1] if msgs else None
+    ip = None
+    hostname = None
+    server_status = None
+    if ticket.server:
+        hostname = ticket.server.hostname
+        server_status = ticket.server.status
+        ip = ticket.server.ip_address.address if ticket.server.ip_address else None
+    return TicketOut(
+        id=ticket.id,
+        user_id=ticket.user_id,
+        server_id=ticket.server_id,
+        subject=ticket.subject,
+        priority=ticket.priority,
+        category=ticket.category,
+        status=ticket.status,
+        is_read_by_admin=ticket.is_read_by_admin,
+        is_read_by_user=ticket.is_read_by_user,
+        closed_at=ticket.closed_at,
+        created_at=ticket.created_at,
+        updated_at=ticket.updated_at,
+        user_email=ticket.user.email if ticket.user else None,
+        server_hostname=hostname,
+        server_ip=ip,
+        server_status=server_status,
+        message_count=len(msgs),
+        last_message_at=last_msg.created_at if last_msg else None,
+    )
+
+
+@router.get("/tickets", response_model=TicketListOut)
+async def admin_list_tickets(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(30, ge=1, le=100),
+    status_filter: str | None = Query(None, alias="status"),
+    priority: str | None = Query(None),
+    category: str | None = Query(None),
+    user_id: int | None = Query(None),
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Список всех тикетов с фильтрами."""
+    query = select(Ticket)
+    if status_filter:
+        query = query.where(Ticket.status == status_filter)
+    if priority:
+        query = query.where(Ticket.priority == priority)
+    if category:
+        query = query.where(Ticket.category == category)
+    if user_id:
+        query = query.where(Ticket.user_id == user_id)
+
+    count_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar() or 0
+
+    offset = (page - 1) * per_page
+    result = await db.execute(
+        query
+        .options(selectinload(Ticket.messages).selectinload(TicketMessage.attachments))
+        .options(selectinload(Ticket.user))
+        .order_by(Ticket.updated_at.desc())
+        .offset(offset)
+        .limit(per_page)
+    )
+    tickets = result.scalars().all()
+    return TicketListOut(items=[_admin_ticket_to_out(t) for t in tickets], total=total)
+
+
+@router.get("/tickets/{ticket_id}", response_model=TicketDetailOut)
+async def admin_get_ticket(
+    ticket_id: int,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Получить тикет со всеми сообщениями (админ)."""
+    result = await db.execute(
+        select(Ticket)
+        .options(selectinload(Ticket.messages).selectinload(TicketMessage.sender))
+        .options(selectinload(Ticket.messages).selectinload(TicketMessage.attachments))
+        .options(selectinload(Ticket.user))
+        .where(Ticket.id == ticket_id)
+    )
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Тикет не найден")
+
+    # Помечаем как прочитанное админом
+    ticket.is_read_by_admin = True
+    for msg in ticket.messages:
+        if msg.sender_role == "user":
+            msg.is_read = True
+    await db.flush()
+
+    ip = None
+    hostname = None
+    server_status = None
+    if ticket.server:
+        hostname = ticket.server.hostname
+        server_status = ticket.server.status
+        ip = ticket.server.ip_address.address if ticket.server.ip_address else None
+
+    from app.schemas.ticket import MessageOut
+    return TicketDetailOut(
+        id=ticket.id,
+        user_id=ticket.user_id,
+        server_id=ticket.server_id,
+        subject=ticket.subject,
+        priority=ticket.priority,
+        category=ticket.category,
+        status=ticket.status,
+        is_read_by_admin=ticket.is_read_by_admin,
+        is_read_by_user=ticket.is_read_by_user,
+        closed_at=ticket.closed_at,
+        created_at=ticket.created_at,
+        updated_at=ticket.updated_at,
+        user_email=ticket.user.email if ticket.user else None,
+        server_hostname=hostname,
+        server_ip=ip,
+        server_status=server_status,
+        messages=[
+            MessageOut(
+                id=m.id,
+                ticket_id=m.ticket_id,
+                sender_id=m.sender_id,
+                sender_role=m.sender_role,
+                sender_email=m.sender.email if m.sender else None,
+                body=m.body,
+                is_read=m.is_read,
+                attachments=[
+                    {
+                        "id": a.id,
+                        "filename": a.filename,
+                        "original_filename": a.original_filename,
+                        "content_type": a.content_type,
+                        "size_bytes": a.size_bytes,
+                        "created_at": a.created_at,
+                    }
+                    for a in (m.attachments or [])
+                ],
+                created_at=m.created_at,
+            )
+            for m in ticket.messages
+        ],
+    )
+
+
+@router.post("/tickets/{ticket_id}/reply")
+async def admin_reply_ticket(
+    ticket_id: int,
+    body: MessageCreate,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Ответить в тикет (от админа)."""
+    result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Тикет не найден")
+    if ticket.status == "closed":
+        raise HTTPException(status_code=400, detail="Тикет закрыт")
+
+    msg = TicketMessage(
+        ticket_id=ticket.id,
+        sender_id=admin.id,
+        sender_role="admin",
+        body=body.body,
+        is_read=False,
+    )
+    db.add(msg)
+
+    ticket.is_read_by_user = False
+    ticket.is_read_by_admin = True
+    ticket.status = "awaiting_user"
+    await db.flush()
+    await db.refresh(msg)
+
+    # WS notify
+    try:
+        import json
+        import redis.asyncio as aioredis
+        from app.config import settings as cfg
+        r = aioredis.from_url(cfg.REDIS_URL, decode_responses=True)
+        await r.publish("ticket_updates", json.dumps({
+            "event": "new_message",
+            "ticket_id": ticket.id,
+            "user_id": ticket.user_id,
+            "message_id": msg.id,
+            "sender_role": "admin",
+        }))
+        await r.close()
+    except Exception:
+        pass
+
+    return {"detail": "Ответ отправлен", "message_id": msg.id}
+
+
+@router.patch("/tickets/{ticket_id}/status")
+async def admin_update_ticket_status(
+    ticket_id: int,
+    body: TicketStatusUpdate,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Сменить статус тикета."""
+    result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Тикет не найден")
+
+    from datetime import datetime as dt, timezone as tz
+    ticket.status = body.status
+    if body.status == "closed":
+        ticket.closed_at = dt.now(tz.utc)
+    await db.flush()
+
+    # WS notify
+    try:
+        import json
+        import redis.asyncio as aioredis
+        from app.config import settings as cfg
+        r = aioredis.from_url(cfg.REDIS_URL, decode_responses=True)
+        await r.publish("ticket_updates", json.dumps({
+            "event": "status_changed",
+            "ticket_id": ticket.id,
+            "user_id": ticket.user_id,
+            "status": body.status,
+        }))
+        await r.close()
+    except Exception:
+        pass
+
+    return {"detail": f"Статус изменён на '{body.status}'"}
+
+
+@router.delete("/tickets/{ticket_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_delete_ticket(
+    ticket_id: int,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Удалить тикет."""
+    result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Тикет не найден")
+    await db.delete(ticket)
+    await db.flush()
+
+
+@router.post("/tickets/{ticket_id}/compensate")
+async def admin_compensate(
+    ticket_id: int,
+    body: CompensationRequest,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Начислить компенсацию пользователю из тикета."""
+    result = await db.execute(
+        select(Ticket).options(selectinload(Ticket.user)).where(Ticket.id == ticket_id)
+    )
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Тикет не найден")
+
+    tx = await billing_deposit_user(
+        db, ticket.user_id, body.amount,
+        description=f"Компенсация по тикету #{ticket_id}: {body.reason}",
+    )
+    await db.flush()
+
+    # Добавляем системное сообщение
+    sys_msg = TicketMessage(
+        ticket_id=ticket.id,
+        sender_id=admin.id,
+        sender_role="admin",
+        body=f"💰 Начислена компенсация: {body.amount:.2f} ₽ — {body.reason}",
+        is_read=False,
+    )
+    db.add(sys_msg)
+    ticket.is_read_by_user = False
+    await db.flush()
+
+    return {"detail": f"Компенсация {body.amount:.2f} ₽ начислена", "new_balance": float(tx.balance_after)}
+
+
+@router.post("/tickets/{ticket_id}/vps-action")
+async def admin_ticket_vps_action(
+    ticket_id: int,
+    body: TicketVpsAction,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Быстрое действие над VPS из тикета."""
+    result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Тикет не найден")
+    if ticket.server_id is None:
+        raise HTTPException(status_code=400, detail="Тикет не привязан к серверу")
+
+    srv_result = await db.execute(select(Server).where(Server.id == ticket.server_id))
+    server = srv_result.scalar_one_or_none()
+    if server is None:
+        raise HTTPException(status_code=404, detail="Сервер не найден")
+
+    from tasks.vm_tasks import vm_action_task
+    vm_action_task.delay(server.id, body.action)
+
+    action_status_map = {
+        "start": "running", "stop": "stopped", "restart": "running",
+        "suspend": "suspended", "unsuspend": "running",
+    }
+    if body.action in action_status_map:
+        server.status = action_status_map[body.action]
+    await db.flush()
+
+    # Системное сообщение
+    action_labels = {
+        "start": "▶️ Запуск", "stop": "⏹ Остановка", "restart": "🔄 Перезагрузка",
+        "suspend": "⏸ Приостановка", "unsuspend": "▶️ Возобновление", "reinstall": "🔧 Переустановка",
+    }
+    sys_msg = TicketMessage(
+        ticket_id=ticket.id,
+        sender_id=admin.id,
+        sender_role="admin",
+        body=f"🖥️ Выполнено действие над VPS #{server.id}: {action_labels.get(body.action, body.action)}",
+        is_read=False,
+    )
+    db.add(sys_msg)
+    ticket.is_read_by_user = False
+    await db.flush()
+
+    return {"detail": f"Действие '{body.action}' выполнено для VPS #{server.id}"}
+
+
+@router.get("/tickets/{ticket_id}/user-info")
+async def admin_get_ticket_user_info(
+    ticket_id: int,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Получить подробную информацию о пользователе тикета."""
+    result = await db.execute(
+        select(Ticket).options(selectinload(Ticket.user)).where(Ticket.id == ticket_id)
+    )
+    ticket = result.scalar_one_or_none()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Тикет не найден")
+
+    user = ticket.user
+
+    # VPS пользователя
+    servers_q = await db.execute(
+        select(Server).where(Server.user_id == user.id, Server.status != "deleted")
+        .order_by(Server.created_at.desc())
+    )
+    servers = servers_q.scalars().all()
+
+    # Последние транзакции
+    tx_q = await db.execute(
+        select(Transaction).where(Transaction.user_id == user.id)
+        .order_by(Transaction.created_at.desc()).limit(10)
+    )
+    transactions = tx_q.scalars().all()
+
+    return {
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role,
+            "balance": float(user.balance),
+            "is_active": user.is_active,
+            "created_at": user.created_at.isoformat(),
+        },
+        "servers": [
+            {
+                "id": s.id,
+                "hostname": s.hostname,
+                "status": s.status,
+                "os_template": s.os_template,
+                "ip_address": s.ip_address.address if s.ip_address else None,
+                "plan_id": s.plan_id,
+                "created_at": s.created_at.isoformat(),
+            }
+            for s in servers
+        ],
+        "recent_transactions": [
+            {
+                "id": t.id,
+                "type": t.type,
+                "amount": float(t.amount),
+                "description": t.description,
+                "created_at": t.created_at.isoformat(),
+            }
+            for t in transactions
+        ],
+    }
