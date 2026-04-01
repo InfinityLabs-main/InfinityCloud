@@ -1,11 +1,11 @@
 """
-Сервис авторизации — хеширование паролей, генерация JWT.
+Сервис авторизации — хеширование паролей, генерация/проверка JWT.
 """
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from jose import jwt
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.config import settings
@@ -36,3 +36,17 @@ def create_access_token(user_id: int, role: str) -> str:
         "exp": expire,
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_access_token(token: str) -> dict | None:
+    """
+    Декодирует и верифицирует JWT-токен.
+    Возвращает payload dict или None если невалиден.
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("sub") is None:
+            return None
+        return payload
+    except JWTError:
+        return None

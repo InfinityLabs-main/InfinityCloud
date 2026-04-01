@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { serverApi, consoleApi, type Server } from "@/lib/api";
+import { useAuthGuard } from "@/lib/useAuthGuard";
+import { useVpsWebSocket, type VpsStatusEvent } from "@/lib/useVpsWebSocket";
 
 export default function ServerDetailPage() {
+  const { allowed } = useAuthGuard();
   const params = useParams();
   const router = useRouter();
   const serverId = Number(params.id);
@@ -17,9 +20,19 @@ export default function ServerDetailPage() {
   const [consoleUrl, setConsoleUrl] = useState("");
   const [showConsole, setShowConsole] = useState(false);
 
-  useEffect(() => {
-    loadServer();
+  // WebSocket — обновление статуса VPS в реальном времени
+  const handleWsMessage = useCallback((event: VpsStatusEvent) => {
+    if (event.event === "status_change" && event.server_id === serverId) {
+      setServer((prev) =>
+        prev ? { ...prev, status: event.status || prev.status, ip_address: event.ip_address ?? prev.ip_address } : prev
+      );
+    }
   }, [serverId]);
+  useVpsWebSocket(handleWsMessage);
+
+  useEffect(() => {
+    if (allowed) loadServer();
+  }, [serverId, allowed]);
 
   const loadServer = async () => {
     try {

@@ -20,6 +20,7 @@ celery_app = Celery(
     include=[
         "tasks.vm_tasks",
         "tasks.billing_tasks",
+        "tasks.node_alerts",
     ],
 )
 
@@ -39,11 +40,29 @@ celery_app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
 
-    # Расписание Beat — почасовой биллинг
+    # Reconnect при старте (если Redis временно недоступен)
+    broker_connection_retry_on_startup=True,
+
+    # Routing: отдельные очереди для долгих и быстрых задач
+    task_routes={
+        "tasks.vm_tasks.create_vm_task": {"queue": "vm_create"},
+        "tasks.vm_tasks.delete_vm_task": {"queue": "vm_create"},
+        "tasks.vm_tasks.vm_action_task": {"queue": "vm_action"},
+        "tasks.billing_tasks.hourly_billing_task": {"queue": "billing"},
+        "tasks.node_alerts.check_node_load_task": {"queue": "billing"},
+    },
+
+    # Расписание Beat
     beat_schedule={
+        # Почасовой биллинг
         "hourly-billing": {
             "task": "tasks.billing_tasks.hourly_billing_task",
             "schedule": crontab(minute=0),  # Каждый час в :00
+        },
+        # Мониторинг нод — каждые 5 минут
+        "node-load-check": {
+            "task": "tasks.node_alerts.check_node_load_task",
+            "schedule": crontab(minute="*/5"),  # Каждые 5 минут
         },
     },
 )

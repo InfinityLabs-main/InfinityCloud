@@ -1,10 +1,9 @@
 """
-Роутер пользователей — баланс, пополнение, транзакции.
+Роутер пользователей — баланс, транзакции.
 
 Эндпоинты:
-  GET  /api/users/balance         — Текущий баланс
-  POST /api/users/deposit         — Пополнить баланс (demo)
-  GET  /api/users/transactions    — Список транзакций
+  GET  /api/v1/users/balance         — Текущий баланс
+  GET  /api/v1/users/transactions    — Список транзакций
 """
 from __future__ import annotations
 
@@ -17,8 +16,7 @@ from app.deps import get_current_user
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.schemas.transaction import TransactionListOut, TransactionOut
-from app.schemas.user import BalanceDeposit, UserBalanceOut
-from app.services.billing import deposit_user
+from app.schemas.user import UserBalanceOut
 
 router = APIRouter()
 
@@ -26,25 +24,7 @@ router = APIRouter()
 @router.get("/balance", response_model=UserBalanceOut)
 async def get_balance(current_user: User = Depends(get_current_user)):
     """Баланс текущего пользователя."""
-    return UserBalanceOut(balance=current_user.balance)
-
-
-@router.post("/deposit", response_model=TransactionOut)
-async def deposit(
-    body: BalanceDeposit,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Пополнение баланса (demo-режим / admin).
-
-    Request body: {"amount": 500.0}
-    Response 200: Transaction
-    """
-    tx = await deposit_user(db, current_user.id, body.amount)
-    await db.commit()
-    await db.refresh(tx)
-    return tx
+    return UserBalanceOut(balance=float(current_user.balance))
 
 
 @router.get("/transactions", response_model=TransactionListOut)
@@ -54,18 +34,12 @@ async def list_transactions(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    История транзакций текущего пользователя.
-
-    Query params: ?page=1&per_page=20
-    """
+    """История транзакций текущего пользователя."""
     offset = (page - 1) * per_page
 
-    # Подсчёт
     count_q = select(func.count()).select_from(Transaction).where(Transaction.user_id == current_user.id)
     total = (await db.execute(count_q)).scalar() or 0
 
-    # Данные
     q = (
         select(Transaction)
         .where(Transaction.user_id == current_user.id)

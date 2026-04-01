@@ -1,0 +1,42 @@
+# ── Promtail — агент для отправки Docker-логов в Loki ──
+# Собирает stdout/stderr всех контейнеров через Docker socket.
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # ── Docker container logs ───────────────────────────
+  - job_name: docker
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: infinity-cloud
+          __path__: /var/log/containers/*.log
+
+  # ── Docker service discovery ────────────────────────
+  - job_name: docker-sd
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project"]
+    relabel_configs:
+      # Используем имя контейнера как label
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: "container"
+      # Используем имя сервиса из compose
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: "service"
+      # Используем имя проекта из compose
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: "project"

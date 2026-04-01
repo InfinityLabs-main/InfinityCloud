@@ -1,19 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import ServerCard from "@/components/ServerCard";
-import { serverApi, userApi, type Server } from "@/lib/api";
+import { serverApi, userApi, paymentApi, type Server } from "@/lib/api";
+import { useAuthGuard } from "@/lib/useAuthGuard";
+import { useVpsWebSocket, type VpsStatusEvent } from "@/lib/useVpsWebSocket";
 
 export default function DashboardPage() {
+  const { allowed } = useAuthGuard();
   const [servers, setServers] = useState<Server[]>([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [depositAmount, setDepositAmount] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+
+  // WebSocket — обновление статуса VPS в реальном времени
+  const handleWsMessage = useCallback((event: VpsStatusEvent) => {
+    if (event.event === "status_change" && event.server_id) {
+      setServers((prev) =>
+        prev.map((s) =>
+          s.id === event.server_id
+            ? { ...s, status: event.status || s.status, ip_address: event.ip_address ?? s.ip_address }
+            : s
+        )
+      );
+    }
+    if (event.event === "balance_updated" && event.balance) {
+      setBalance(parseFloat(event.balance));
+    }
+  }, []);
+
+  useVpsWebSocket(handleWsMessage);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (allowed) loadData();
+  }, [allowed]);
 
   const loadData = async () => {
     try {
@@ -33,16 +55,19 @@ export default function DashboardPage() {
   const handleDeposit = async () => {
     const amount = parseFloat(depositAmount);
     if (!amount || amount <= 0) return;
+    setPaymentLoading(true);
     try {
-      await userApi.deposit(amount);
-      setDepositAmount("");
-      loadData();
-    } catch (err) {
-      console.error(err);
+      const res = await paymentApi.create(amount);
+      // Редирект на страницу оплаты YooKassa
+      window.location.href = res.data.confirmation_url;
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Ошибка создания платежа");
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
-  if (loading) {
+  if (!allowed || loading) {
     return (
       <>
         <Navbar />
@@ -75,8 +100,12 @@ export default function DashboardPage() {
                 className="input-field w-32"
                 min="1"
               />
-              <button onClick={handleDeposit} className="btn-primary">
-                Пополнить
+              <button
+                onClick={handleDeposit}
+                disabled={paymentLoading}
+                className="btn-primary disabled:opacity-50"
+              >
+                {paymentLoading ? "Переход к оплате…" : "Пополнить"}
               </button>
             </div>
           </div>

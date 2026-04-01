@@ -20,7 +20,8 @@ class ProxmoxClient:
         self.headers = {
             "Authorization": f"PVEAPIToken={node.api_user}!{node.api_token_name}={node.api_token_value}"
         }
-        self.verify_ssl = False  # В проде — True + CA
+        from app.config import settings
+        self.verify_ssl = settings.PROXMOX_VERIFY_SSL
 
     async def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
         """Базовый HTTP-запрос к Proxmox API."""

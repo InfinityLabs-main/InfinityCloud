@@ -2,28 +2,32 @@
 Роутер VPS-серверов — CRUD и управление.
 
 Эндпоинты:
-  GET    /api/servers              — Список серверов пользователя
-  POST   /api/servers              — Создать VPS
-  GET    /api/servers/{id}         — Детали VPS
-  POST   /api/servers/{id}/action  — Действие (start/stop/restart/suspend)
-  PUT    /api/servers/{id}/rdns    — Обновить rDNS
-  DELETE /api/servers/{id}         — Удалить VPS
+  GET    /api/v1/servers              — Список серверов пользователя
+  POST   /api/v1/servers              — Создать VPS
+  GET    /api/v1/servers/{id}         — Детали VPS
+  POST   /api/v1/servers/{id}/action  — Действие (start/stop/restart/suspend)
+  PUT    /api/v1/servers/{id}/rdns    — Обновить rDNS
+  DELETE /api/v1/servers/{id}         — Удалить VPS (soft)
 """
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.deps import get_current_user
 from app.exceptions import InsufficientFundsError
+from app.models.os_template import OSTemplate
 from app.models.plan import Plan
 from app.models.server import Server
 from app.models.user import User
 from app.schemas.server import ServerAction, ServerCreate, ServerListOut, ServerOut, ServerRdns
+from app.services.billing import charge_user
 
 router = APIRouter()
 
@@ -54,7 +58,9 @@ async def list_servers(
 ):
     """Список VPS текущего пользователя."""
     result = await db.execute(
-        select(Server).where(Server.user_id == current_user.id).order_by(Server.created_at.desc())
+        select(Server)
+        .where(Server.user_id == current_user.id, Server.status != "deleted")
+        .order_by(Server.created_at.desc())
     )
     servers = result.scalars().all()
     return ServerListOut(
@@ -71,40 +77,51 @@ async def create_server(
 ):
     """
     Создать новый VPS-сервер.
-
-    Request body:
-        {
-            "plan_id": 1,
-            "hostname": "my-server",
-            "os_template": "ubuntu-22.04",
-            "idempotency_key": "optional-unique-key"
-        }
-
     Логика:
-      1. Проверяем idempotency_key (защита от дублей)
-      2. Проверяем баланс (>= plan.price_per_hour)
-      3. Создаём запись Server со статусом "creating"
-      4. Отправляем задачу create_vm в Celery
+      1. Валидируем os_template по whitelist в БД
+      2. Проверяем idempotency_key (IntegrityError fallback)
+      3. Блокируем баланс (with_for_update) и списываем первый час
+      4. Создаём запись Server со статусом "creating"
+      5. Отправляем задачу create_vm в Celery
     """
-    # Idempotency check
-    idem_key = body.idempotency_key or str(uuid.uuid4())
-    existing = await db.execute(select(Server).where(Server.idempotency_key == idem_key))
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail="Сервер с таким idempotency_key уже создаётся")
+    # 1. Валидация os_template по whitelist из БД
+    tpl_result = await db.execute(
+        select(OSTemplate).where(OSTemplate.slug == body.os_template, OSTemplate.is_active == True)  # noqa
+    )
+    if tpl_result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=400, detail=f"Шаблон ОС '{body.os_template}' недоступен")
 
-    # Проверяем план
+    # 2. Idempotency check
+    idem_key = body.idempotency_key or str(uuid.uuid4())
+
+    # 3. Проверяем план
     plan_result = await db.execute(select(Plan).where(Plan.id == body.plan_id, Plan.is_active == True))  # noqa
     plan = plan_result.scalar_one_or_none()
     if plan is None:
         raise HTTPException(status_code=404, detail="Тариф не найден")
 
-    # Проверяем баланс
-    if current_user.balance < plan.price_per_hour:
+    # 4. Блокируем баланс пользователя (with_for_update) и списываем первый час
+    user_result = await db.execute(
+        select(User).where(User.id == current_user.id).with_for_update()
+    )
+    user = user_result.scalar_one()
+
+    if user.balance < plan.price_per_hour:
         raise InsufficientFundsError()
 
-    # Создаём запись
+    # Списываем первый час сразу
+    tx = await charge_user(
+        db=db,
+        user_id=user.id,
+        amount=plan.price_per_hour,
+        description=f"Первый час: {plan.name}",
+    )
+    if tx is None:
+        raise InsufficientFundsError()
+
+    # 5. Создаём запись (IntegrityError при дубле idempotency_key)
     server = Server(
-        user_id=current_user.id,
+        user_id=user.id,
         plan_id=plan.id,
         hostname=body.hostname,
         os_template=body.os_template,
@@ -112,10 +129,19 @@ async def create_server(
         idempotency_key=idem_key,
     )
     db.add(server)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Сервер с таким idempotency_key уже создаётся")
+
     await db.refresh(server)
 
-    # Отправляем задачу в Celery (импорт внутри, чтобы избежать circular import)
+    # Привязываем transaction к серверу
+    tx.server_id = server.id
+    await db.flush()
+
+    # 6. Отправляем задачу в Celery
     from tasks.vm_tasks import create_vm_task
     create_vm_task.delay(server.id)
 
@@ -145,11 +171,7 @@ async def server_action(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Выполнить действие над VPS.
-
-    Request body: {"action": "start"}  — start|stop|restart|suspend|unsuspend
-    """
+    """Выполнить действие над VPS: start|stop|restart|suspend|unsuspend"""
     result = await db.execute(
         select(Server).where(Server.id == server_id, Server.user_id == current_user.id)
     )
@@ -209,7 +231,7 @@ async def delete_server(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Удалить VPS."""
+    """Удалить VPS (soft-delete)."""
     result = await db.execute(
         select(Server).where(Server.id == server_id, Server.user_id == current_user.id)
     )

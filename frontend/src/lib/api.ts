@@ -8,7 +8,7 @@ import Cookies from "js-cookie";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const api = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: `${API_URL}/api/v1`,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -114,7 +114,11 @@ export const authApi = {
       "/auth/login",
       { email, password }
     );
-    Cookies.set("access_token", resp.data.access_token, { expires: 1 });
+    Cookies.set("access_token", resp.data.access_token, {
+      expires: 1,
+      sameSite: "strict",
+      secure: window.location.protocol === "https:",
+    });
     return resp.data;
   },
 
@@ -132,11 +136,26 @@ export const authApi = {
 
 export const userApi = {
   getBalance: () => api.get<{ balance: number }>("/users/balance"),
-  deposit: (amount: number) => api.post<Transaction>("/users/deposit", { amount }),
   getTransactions: (page = 1) =>
     api.get<{ items: Transaction[]; total: number }>("/users/transactions", {
       params: { page },
     }),
+};
+
+// ═══════════════════════════════════════════════════
+//  Платежи (YooKassa)
+// ═══════════════════════════════════════════════════
+
+export const paymentApi = {
+  create: (amount: number) =>
+    api.post<{ payment_id: string; confirmation_url: string; amount: number; status: string }>(
+      "/payments/create",
+      { amount }
+    ),
+  status: (paymentId: string) =>
+    api.get<{ payment_id: string; status: string; amount: string; paid: boolean }>(
+      `/payments/status/${paymentId}`
+    ),
 };
 
 // ═══════════════════════════════════════════════════

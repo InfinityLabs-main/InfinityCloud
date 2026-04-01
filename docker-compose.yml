@@ -16,12 +16,15 @@ services:
       interval: 5s
       retries: 5
 
-  # ─── Redis ───────────────────────────────────────────
+  # ─── Redis (persistence + AOF) ──────────────────────
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
+    volumes:
+      - redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -41,11 +44,25 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r=httpx.get('http://localhost:8000/api/v1/health',timeout=5); assert r.status_code==200"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     command: >
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    labels:
+      - "com.docker.compose.project=infinity-cloud"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+        tag: "backend"
 
-  # ─── Celery Worker ──────────────────────────────────
+  # ─── Celery Worker (разделённые очереди) ────────────
   worker:
     build:
       context: ./worker
@@ -57,9 +74,19 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: celery -A tasks.celery_app worker -l info -c 4
+    command: >
+      celery -A tasks.celery_app worker -l info -c 4
+      -Q vm_create,vm_action,billing,celery
+    labels:
+      - "com.docker.compose.project=infinity-cloud"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+        tag: "worker"
 
-  # ─── Celery Beat (биллинг каждый час) ───────────────
+  # ─── Celery Beat (расписание биллинга + алертов) ────
   beat:
     build:
       context: ./worker
@@ -69,7 +96,15 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: celery -A tasks.celery_app beat -l info
+    command: celery -A tasks.celery_app beat -l info --pidfile=
+    labels:
+      - "com.docker.compose.project=infinity-cloud"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "beat"
 
   # ─── Frontend (Next.js) ─────────────────────────────
   frontend:
@@ -84,7 +119,56 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    labels:
+      - "com.docker.compose.project=infinity-cloud"
+
+  # ─── Grafana Loki (лог-хранилище) ──────────────────
+  loki:
+    image: grafana/loki:2.9.4
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./infra/loki/loki-config.yml:/etc/loki/local-config.yaml
+      - lokidata:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      retries: 5
+
+  # ─── Promtail (сборщик логов → Loki) ───────────────
+  promtail:
+    image: grafana/promtail:2.9.4
+    restart: unless-stopped
+    volumes:
+      - ./infra/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  # ─── Grafana (визуализация логов и метрик) ──────────
+  grafana:
+    image: grafana/grafana:10.3.1
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafanadata:/var/lib/grafana
+    depends_on:
+      - loki
 
 volumes:
   pgdata:
+  redisdata:
+  lokidata:
+  grafanadata:

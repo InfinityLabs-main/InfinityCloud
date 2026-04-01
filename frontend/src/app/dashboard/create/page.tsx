@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import PlanCard from "@/components/PlanCard";
 import { planApi, serverApi, type Plan } from "@/lib/api";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 
 const OS_OPTIONS = [
   { value: "ubuntu-22.04", label: "Ubuntu 22.04 LTS" },
@@ -17,6 +18,7 @@ const OS_OPTIONS = [
 ];
 
 export default function CreateServerPage() {
+  const { allowed } = useAuthGuard();
   const router = useRouter();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);

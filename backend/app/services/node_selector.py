@@ -1,5 +1,6 @@
 """
 Сервис выбора ноды — алгоритм Least-Used (наименее загруженная нода).
+Использует with_for_update для защиты от overcommit при конкурентных запросах.
 """
 from __future__ import annotations
 
@@ -20,10 +21,12 @@ async def select_node(
     Выбирает оптимальную ноду по алгоритму Least-Used:
     - Нода должна быть активна
     - Должно хватать свободных ресурсов
-    - Из подходящих выбираем с наибольшим запасом RAM (наименее загруженную)
+    - Из подходящих выбираем с наибольшим запасом RAM
+    - Используется with_for_update для предотвращения overcommit
     """
+    # Блокируем ноды для атомарного резервирования ресурсов
     result = await db.execute(
-        select(Node).where(Node.is_active == True)  # noqa: E712
+        select(Node).where(Node.is_active == True).with_for_update()  # noqa: E712
     )
     nodes = result.scalars().all()
 
@@ -34,7 +37,6 @@ async def select_node(
         free_disk = node.total_disk_gb - node.used_disk_gb
 
         if free_cpu >= required_cpu and free_ram >= required_ram_mb and free_disk >= required_disk_gb:
-            # Оценка: чем больше свободной RAM, тем лучше
             score = free_ram
             suitable.append((node, score))
 
@@ -45,7 +47,7 @@ async def select_node(
     suitable.sort(key=lambda x: x[1], reverse=True)
     best_node = suitable[0][0]
 
-    # Резервируем ресурсы сразу
+    # Резервируем ресурсы атомарно (под блокировкой)
     best_node.used_cpu += required_cpu
     best_node.used_ram_mb += required_ram_mb
     best_node.used_disk_gb += required_disk_gb

@@ -2,12 +2,19 @@
 from __future__ import annotations
 
 import datetime
+from decimal import Decimal
+
 from pydantic import BaseModel, Field
 
 
 class ServerCreate(BaseModel):
     plan_id: int
-    hostname: str = Field(min_length=1, max_length=100)
+    hostname: str = Field(
+        min_length=1,
+        max_length=63,
+        pattern=r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$",
+        description="RFC-1123 hostname",
+    )
     os_template: str = Field(min_length=1, max_length=150)
     idempotency_key: str | None = Field(None, max_length=64, description="Ключ идемпотентности")
 

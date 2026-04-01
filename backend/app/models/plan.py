@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, func
+from decimal import Decimal
+
+from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -21,9 +23,9 @@ class Plan(Base):
     cpu_cores: Mapped[int] = mapped_column(Integer, nullable=False)          # vCPU
     ram_mb: Mapped[int] = mapped_column(Integer, nullable=False)             # МБ оперативки
     disk_gb: Mapped[int] = mapped_column(Integer, nullable=False)            # Диск (ГБ)
-    bandwidth_tb: Mapped[float] = mapped_column(Float, default=1.0)          # Трафик (ТБ)
-    price_per_hour: Mapped[float] = mapped_column(Float, nullable=False)     # Цена/час (₽)
-    price_per_month: Mapped[float] = mapped_column(Float, nullable=False)    # Цена/мес. (₽)
+    bandwidth_tb: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal("1.00"))  # Трафик (ТБ)
+    price_per_hour: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)     # Цена/час (₽)
+    price_per_month: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)    # Цена/мес. (₽)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
