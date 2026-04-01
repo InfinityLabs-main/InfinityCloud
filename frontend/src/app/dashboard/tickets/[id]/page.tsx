@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Navbar from "@/components/Navbar";
-import { useAuthGuard } from "@/lib/useAuthGuard";
 import api from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
@@ -78,7 +76,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const WS_URL = API_URL.replace("http://", "ws://").replace("https://", "wss://");
 
 export default function TicketChatPage() {
-  const { allowed } = useAuthGuard();
   const params = useParams();
   const router = useRouter();
   const ticketId = Number(params.id);
@@ -98,12 +95,11 @@ export default function TicketChatPage() {
   };
 
   useEffect(() => {
-    if (allowed) loadTicket();
-  }, [ticketId, allowed]);
+    loadTicket();
+  }, [ticketId]);
 
   // WebSocket для real-time обновлений
   useEffect(() => {
-    if (!allowed) return;
     const token = getToken();
     if (!token) return;
 
@@ -209,11 +205,8 @@ export default function TicketChatPage() {
 
   if (loading || !ticket) {
     return (
-      <div className="min-h-screen bg-[#060010]">
-        <Navbar />
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-400">Загрузка…</div>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-400">Загрузка…</div>
       </div>
     );
   }
@@ -222,10 +215,8 @@ export default function TicketChatPage() {
   const isClosed = ticket.status === "closed";
 
   return (
-    <div className="min-h-screen bg-[#060010] flex flex-col">
-      <Navbar />
-
-      <div className="max-w-4xl mx-auto px-4 py-6 flex-1 flex flex-col w-full">
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="max-w-4xl mx-auto flex-1 flex flex-col w-full space-y-4">
         {/* Header */}
         <div className="mb-6">
           <button

@@ -12,6 +12,7 @@ import time
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -98,3 +99,23 @@ async def login(body: UserLogin, request: Request, db: AsyncSession = Depends(ge
 async def me(current_user: User = Depends(get_current_user)):
     """Текущий авторизованный пользователь."""
     return current_user
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+@router.post("/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Смена пароля текущим пользователем."""
+    if not verify_password(body.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Текущий пароль указан неверно")
+
+    current_user.hashed_password = hash_password(body.new_password)
+    await db.flush()
+    return {"detail": "Пароль успешно изменён"}

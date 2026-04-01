@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
-import { useAuthGuard } from "@/lib/useAuthGuard";
 import api from "@/lib/api";
 
 interface TicketItem {
@@ -44,7 +42,6 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function TicketsPage() {
-  const { allowed } = useAuthGuard();
   const [tickets, setTickets] = useState<TicketItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -52,8 +49,8 @@ export default function TicketsPage() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    if (allowed) loadTickets();
-  }, [allowed, statusFilter, page]);
+    loadTickets();
+  }, [statusFilter, page]);
 
   const loadTickets = async () => {
     setLoading(true);
@@ -70,23 +67,10 @@ export default function TicketsPage() {
     }
   };
 
-  if (!allowed) {
-    return (
-      <div className="min-h-screen bg-[#060010]">
-        <Navbar />
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-400">Загрузка…</div>
-        </div>
-      </div>
-    );
-  }
-
   const totalPages = Math.ceil(total / 20);
 
   return (
-    <div className="min-h-screen bg-[#060010]">
-      <Navbar />
-      <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -220,7 +204,6 @@ export default function TicketsPage() {
             </button>
           </div>
         )}
-      </div>
     </div>
   );
 }

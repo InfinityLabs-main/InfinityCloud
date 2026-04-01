@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "@/components/Navbar";
-import { useAuthGuard } from "@/lib/useAuthGuard";
 import api, { type Server } from "@/lib/api";
 
 interface FormState {
@@ -39,7 +37,6 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function CreateTicketPage() {
-  const { allowed } = useAuthGuard();
   const router = useRouter();
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,10 +51,8 @@ export default function CreateTicketPage() {
   });
 
   useEffect(() => {
-    if (allowed) {
-      api.get("/servers").then((r) => setServers(r.data.items)).catch(() => {});
-    }
-  }, [allowed]);
+    api.get("/servers").then((r) => setServers(r.data.items)).catch(() => {});
+  }, []);
 
   const selectedServer = servers.find((s) => s.id === Number(form.server_id));
 
@@ -96,21 +91,8 @@ export default function CreateTicketPage() {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
-  if (!allowed) {
-    return (
-      <div className="min-h-screen bg-[#060010]">
-        <Navbar />
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-400">Загрузка…</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#060010]">
-      <Navbar />
-      <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="mb-8">
           <button
@@ -284,7 +266,6 @@ export default function CreateTicketPage() {
             </button>
           </div>
         </div>
-      </div>
     </div>
   );
 }
