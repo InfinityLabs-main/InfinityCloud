@@ -67,6 +67,7 @@ services:
     build:
       context: ./worker
       dockerfile: Dockerfile
+    image: infinitycloud-worker
     restart: unless-stopped
     env_file: .env
     depends_on:
@@ -88,12 +89,13 @@ services:
 
   # ─── Celery Beat (расписание биллинга + алертов) ────
   beat:
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
+    image: infinitycloud-worker
+    pull_policy: never
     restart: unless-stopped
     env_file: .env
     depends_on:
+      worker:
+        condition: service_started
       redis:
         condition: service_healthy
     command: celery -A tasks.celery_app beat -l info --pidfile=

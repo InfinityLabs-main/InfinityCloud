@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -9,7 +10,8 @@ ENV npm_config_loglevel=error \
 	NEXT_TELEMETRY_DISABLED=1
 
 COPY package*.json ./
-RUN set -e; \
+RUN --mount=type=cache,target=/root/.npm \
+	set -e; \
 	if [ -f package-lock.json ]; then \
 		npm ci --no-fund --no-audit --loglevel=error || (rm -f package-lock.json && npm install --no-fund --no-audit --loglevel=error); \
 	else \
@@ -23,7 +25,8 @@ RUN mkdir -p public
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-RUN npm run build
+RUN --mount=type=cache,target=/app/.next/cache \
+	npm run build
 
 # ── Production ────────────────────────────────────
 FROM node:20-alpine AS runner
