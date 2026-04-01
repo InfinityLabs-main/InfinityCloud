@@ -69,25 +69,25 @@ export default function DashboardPage() {
 
   if (!allowed || loading) {
     return (
-      <>
+      <div className="min-h-screen bg-[#060010]">
         <Navbar />
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-400">Загрузка…</div>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-[#060010]">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Баланс */}
-        <div className="card mb-8">
-          <div className="flex items-center justify-between">
+        <div className="bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6 mb-8">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h2 className="text-sm font-medium text-gray-500">Баланс</h2>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
+              <h2 className="text-sm font-medium text-gray-400">Баланс</h2>
+              <p className="text-3xl font-bold text-white mt-1">
                 {balance.toFixed(2)} ₽
               </p>
             </div>
@@ -97,15 +97,15 @@ export default function DashboardPage() {
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
                 placeholder="Сумма"
-                className="input-field w-32"
+                className="w-32 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/40"
                 min="1"
               />
               <button
                 onClick={handleDeposit}
                 disabled={paymentLoading}
-                className="btn-primary disabled:opacity-50"
+                className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-medium py-2.5 px-5 rounded-xl transition-all disabled:opacity-50"
               >
-                {paymentLoading ? "Переход к оплате…" : "Пополнить"}
+                {paymentLoading ? "Переход…" : "Пополнить"}
               </button>
             </div>
           </div>
@@ -113,20 +113,20 @@ export default function DashboardPage() {
 
         {/* Серверы */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900">
+          <h2 className="text-xl font-bold text-white">
             Мои серверы ({servers.length})
           </h2>
-          <a href="/dashboard/create" className="btn-primary">
+          <a href="/dashboard/create" className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-medium py-2.5 px-5 rounded-xl transition-all">
             + Создать VPS
           </a>
         </div>
 
         {servers.length === 0 ? (
-          <div className="card text-center py-12">
+          <div className="bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl text-center py-12">
             <p className="text-gray-400 text-lg">У вас пока нет серверов</p>
             <a
               href="/dashboard/create"
-              className="btn-primary mt-4 inline-block"
+              className="bg-gradient-to-r from-purple-600 to-violet-600 text-white font-medium py-2.5 px-5 rounded-xl mt-4 inline-block"
             >
               Создать первый VPS
             </a>
@@ -139,6 +139,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

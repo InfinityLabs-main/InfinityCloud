@@ -9,6 +9,7 @@ from sqlalchemy import Boolean, DateTime, Float, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from typing import Optional
 
 
 class Node(Base):
@@ -32,6 +33,17 @@ class Node(Base):
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     max_vms: Mapped[int] = mapped_column(Integer, default=100)
+
+    # Локация дата-центра
+    location: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    country: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    country_code: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+
+    # Мониторинг пинга
+    ping_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_ping_at: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

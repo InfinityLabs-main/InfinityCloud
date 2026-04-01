@@ -17,19 +17,15 @@ import {
   HardDrive,
   Activity,
   ChevronDown,
-  Mail,
-  Send,
   ArrowRight,
   Menu,
   X,
   BookOpen,
   Map,
   Users,
-  Check,
   ExternalLink,
   Monitor,
   Server,
-  Headphones,
   FileText,
   Rocket,
 } from "lucide-react";
@@ -42,8 +38,8 @@ const NAV_LINKS = [
   { label: "Преимущества", id: "features" },
   { label: "Тарифы", id: "pricing" },
   { label: "Как работает", id: "how-it-works" },
+  { label: "Серверы", id: "servers" },
   { label: "FAQ", id: "faq" },
-  { label: "Контакты", id: "contacts" },
 ];
 
 const FEATURES = [
@@ -65,7 +61,7 @@ const FEATURES = [
   {
     icon: Globe,
     title: "Дата-центры в Европе",
-    desc: "Серверы в Германии и Швеции. Низкие задержки и высокая скорость соединения.",
+    desc: "Серверы в Нидерландах (Амстердам). Низкие задержки и высокая скорость соединения.",
   },
   {
     icon: HardDrive,
@@ -76,59 +72,6 @@ const FEATURES = [
     icon: Activity,
     title: "Мониторинг 24/7",
     desc: "Отслеживайте нагрузку, трафик и состояние сервера в реальном времени из панели управления.",
-  },
-];
-
-const PLANS = [
-  {
-    name: "Starter",
-    price: "299",
-    period: "мес",
-    desc: "Для небольших проектов и тестирования",
-    features: [
-      "1 vCPU",
-      "1 ГБ RAM",
-      "20 ГБ NVMe SSD",
-      "1 ТБ трафика",
-      "DDoS-защита",
-      "1 IPv4-адрес",
-    ],
-    popular: false,
-  },
-  {
-    name: "Business",
-    price: "799",
-    period: "мес",
-    desc: "Для растущих проектов и веб-приложений",
-    features: [
-      "2 vCPU",
-      "4 ГБ RAM",
-      "80 ГБ NVMe SSD",
-      "4 ТБ трафика",
-      "DDoS-защита Pro",
-      "1 IPv4-адрес",
-      "Бэкапы",
-      "Приоритетная поддержка",
-    ],
-    popular: true,
-  },
-  {
-    name: "Enterprise",
-    price: "1 499",
-    period: "мес",
-    desc: "Для высоконагруженных приложений",
-    features: [
-      "4 vCPU",
-      "8 ГБ RAM",
-      "160 ГБ NVMe SSD",
-      "Безлимитный трафик",
-      "DDoS-защита Premium",
-      "2 IPv4-адреса",
-      "Ежедневные бэкапы",
-      "Поддержка 24/7",
-      "Выделенные ресурсы",
-    ],
-    popular: false,
   },
 ];
 
@@ -157,19 +100,6 @@ const STEPS = [
     desc: "Удобная панель для мониторинга и масштабирования",
     icon: Activity,
   },
-];
-
-const STATS = [
-  { value: 99.99, suffix: "%", label: "Uptime SLA", decimals: 2, prefix: "" },
-  { value: 60, suffix: " сек", label: "Деплой сервера", decimals: 0, prefix: "<" },
-  { value: 5000, suffix: "+", label: "Активных клиентов", decimals: 0, prefix: "" },
-  { value: 24, suffix: "/7", label: "Поддержка", decimals: 0, prefix: "" },
-];
-
-const SERVERS = [
-  { location: "Франкфурт", country: "Германия", flag: "🇩🇪", status: "online" as const, ping: "12 мс" },
-  { location: "Стокгольм", country: "Швеция", flag: "🇸🇪", status: "online" as const, ping: "18 мс" },
-  { location: "Хельсинки", country: "Финляндия", flag: "🇫🇮", status: "online" as const, ping: "24 мс" },
 ];
 
 const FAQ_DATA = [
@@ -205,18 +135,21 @@ const INFO_BLOCKS = [
     title: "Документация",
     desc: "Подробные гайды, API-справочник и примеры для быстрого старта",
     btn: "Открыть документацию",
+    href: "/docs",
   },
   {
     icon: Map,
     title: "Roadmap",
     desc: "Следите за нашими планами развития и предлагайте свои идеи",
     btn: "Смотреть Roadmap",
+    href: "#",
   },
   {
     icon: Users,
-    title: "О компании",
-    desc: "Узнайте больше о нашей команде, миссии и ценностях Infinity Cloud",
-    btn: "Узнать больше",
+    title: "FAQ",
+    desc: "Ответы на самые частые вопросы о наших услугах и платформе",
+    btn: "Открыть FAQ",
+    href: "/faq",
   },
 ];
 
@@ -259,43 +192,6 @@ function FadeIn({
     >
       {children}
     </motion.div>
-  );
-}
-
-function AnimatedCounter({
-  value,
-  suffix = "",
-  prefix = "",
-  decimals = 0,
-}: {
-  value: number;
-  suffix?: string;
-  prefix?: string;
-  decimals?: number;
-}) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true });
-  const [display, setDisplay] = useState("0");
-
-  useEffect(() => {
-    if (!inView) return;
-    const dur = 2000;
-    const t0 = performance.now();
-    const tick = (now: number) => {
-      const p = Math.min((now - t0) / dur, 1);
-      const e = 1 - Math.pow(1 - p, 4);
-      setDisplay((e * value).toFixed(decimals));
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [inView, value, decimals]);
-
-  return (
-    <span ref={ref}>
-      {prefix}
-      {display}
-      {suffix}
-    </span>
   );
 }
 
@@ -551,11 +447,11 @@ function Hero() {
                 </span>
               </div>
               <div className="space-y-2.5 font-mono text-[13px] leading-relaxed">
-                <p className="text-green-400">$ infinity deploy --region eu-central</p>
+                <p className="text-green-400">$ infinity deploy --region eu-west</p>
                 <p className="text-gray-500">Initializing VPS instance…</p>
                 <p>
                   <span className="text-gray-600">Region: </span>
-                  <span className="text-gray-300">Frankfurt, DE 🇩🇪</span>
+                  <span className="text-gray-300">Amsterdam, NL 🇳🇱</span>
                 </p>
                 <p>
                   <span className="text-gray-600">OS: </span>
@@ -665,13 +561,31 @@ function Features() {
 /* ================================================================== */
 
 function Pricing() {
+  const [plans, setPlans] = useState<Array<{
+    id: number; name: string; cpu_cores: number; ram_mb: number;
+    disk_gb: number; price_per_month: number;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeCountry, setActiveCountry] = useState("NL");
+
+  const countries = [
+    { code: "NL", name: "Нидерланды", flag: "🇳🇱" },
+  ];
+
+  useEffect(() => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+    fetch(`${API_URL}/api/v1/public/plans`)
+      .then(r => r.json())
+      .then(data => { setPlans(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
   return (
     <section id="pricing" className="relative py-24 md:py-32">
-      {/* Background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-purple-600/10 rounded-full blur-[150px] pointer-events-none" />
 
-      <div className="relative max-w-7xl mx-auto px-6">
-        <FadeIn className="text-center mb-16">
+      <div className="relative max-w-5xl mx-auto px-6">
+        <FadeIn className="text-center mb-12">
           <span className="inline-block text-xs font-semibold tracking-[0.2em] uppercase text-purple-400 mb-4">
             Тарифы
           </span>
@@ -679,61 +593,78 @@ function Pricing() {
             Простые и прозрачные <GradientText>цены</GradientText>
           </h2>
           <p className="mt-4 text-gray-400 max-w-2xl mx-auto">
-            Выберите подходящий тариф или настройте конфигурацию под свои задачи
+            Выберите подходящий тариф под ваши задачи. Без скрытых платежей.
           </p>
         </FadeIn>
 
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 items-start">
-          {PLANS.map((plan, i) => (
-            <FadeIn key={plan.name} delay={i * 0.15}>
-              <div
-                className={`relative group rounded-2xl transition-all duration-300 hover:-translate-y-2 ${
-                  plan.popular
-                    ? "bg-gradient-to-b from-purple-500/10 to-violet-500/5 border-2 border-purple-500/30 shadow-xl shadow-purple-500/10"
-                    : "bg-white/[0.03] border border-white/[0.06] hover:border-purple-500/20"
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-                    <span className="bg-gradient-to-r from-purple-600 to-violet-600 text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-lg shadow-purple-500/30">
-                      Популярный
-                    </span>
-                  </div>
-                )}
-
-                <div className="p-7 lg:p-8">
-                  <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
-                  <p className="text-sm text-gray-400 mt-1">{plan.desc}</p>
-
-                  <div className="mt-6 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white">{plan.price}</span>
-                    <span className="text-gray-400 text-sm">₽/{plan.period}</span>
-                  </div>
-
-                  <Link
-                    href="/register"
-                    className={`mt-6 block text-center py-3 rounded-xl font-medium transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${
-                      plan.popular
-                        ? "bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white shadow-lg shadow-purple-500/25"
-                        : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
-                    }`}
-                  >
-                    Начать сейчас
-                  </Link>
-
-                  <ul className="mt-8 space-y-3">
-                    {plan.features.map((feat) => (
-                      <li key={feat} className="flex items-start gap-3 text-sm text-gray-300">
-                        <Check className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-                        {feat}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </FadeIn>
+        <FadeIn className="flex gap-3 mb-8 justify-center">
+          {countries.map(c => (
+            <button
+              key={c.code}
+              onClick={() => setActiveCountry(c.code)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                activeCountry === c.code
+                  ? "bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg shadow-purple-500/25"
+                  : "bg-white/[0.04] text-gray-400 hover:text-white border border-white/[0.08] hover:border-white/[0.15]"
+              }`}
+            >
+              <span className="text-lg">{c.flag}</span>
+              {c.name}
+            </button>
           ))}
-        </div>
+        </FadeIn>
+
+        <FadeIn>
+          <div className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-2xl overflow-hidden">
+            <div className="hidden sm:grid grid-cols-6 gap-4 px-6 py-4 border-b border-white/[0.06]">
+              <div className="text-sm font-semibold text-gray-400">Тариф</div>
+              <div className="text-sm font-semibold text-gray-400 text-center">vCPU</div>
+              <div className="text-sm font-semibold text-gray-400 text-center">RAM</div>
+              <div className="text-sm font-semibold text-gray-400 text-center">NVMe SSD</div>
+              <div className="text-sm font-semibold text-gray-400 text-right">Цена</div>
+              <div />
+            </div>
+
+            {loading ? (
+              <div className="px-6 py-12 text-center text-gray-500">Загрузка тарифов…</div>
+            ) : plans.length === 0 ? (
+              <div className="px-6 py-12 text-center text-gray-500">Тарифы временно недоступны</div>
+            ) : (
+              plans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className="grid sm:grid-cols-6 gap-2 sm:gap-4 px-6 py-5 border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.03] transition-colors items-center group"
+                >
+                  <div className="font-semibold text-white">{plan.name}</div>
+                  <div className="text-center text-gray-300">
+                    <span className="sm:hidden text-gray-500 text-xs">vCPU: </span>
+                    {plan.cpu_cores} ядер
+                  </div>
+                  <div className="text-center text-gray-300">
+                    <span className="sm:hidden text-gray-500 text-xs">RAM: </span>
+                    {plan.ram_mb >= 1024 ? `${(plan.ram_mb / 1024).toFixed(0)} ГБ` : `${plan.ram_mb} МБ`}
+                  </div>
+                  <div className="text-center text-gray-300">
+                    <span className="sm:hidden text-gray-500 text-xs">Диск: </span>
+                    {plan.disk_gb} ГБ
+                  </div>
+                  <div className="text-right">
+                    <span className="text-white font-bold text-lg">{plan.price_per_month}</span>
+                    <span className="text-gray-500 text-sm ml-1">₽/мес</span>
+                  </div>
+                  <div className="text-right">
+                    <Link
+                      href="/register"
+                      className="inline-block text-xs font-medium text-white bg-gradient-to-r from-purple-600 to-violet-600 px-4 py-2 rounded-lg transition-all hover:shadow-lg hover:shadow-purple-500/25 sm:opacity-0 sm:group-hover:opacity-100"
+                    >
+                      Заказать
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </FadeIn>
       </div>
     </section>
   );
@@ -781,43 +712,28 @@ function HowItWorks() {
 }
 
 /* ================================================================== */
-/*  6 · STATS                                                          */
-/* ================================================================== */
-
-function StatsSection() {
-  return (
-    <section className="relative py-24 md:py-32 overflow-hidden">
-      {/* Background stripe */}
-      <div className="absolute inset-0 bg-gradient-to-b from-purple-950/20 via-transparent to-transparent pointer-events-none" />
-
-      <div className="relative max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-          {STATS.map((s, i) => (
-            <FadeIn key={s.label} delay={i * 0.1}>
-              <div className="text-center">
-                <div className="text-4xl sm:text-5xl font-bold text-white mb-2">
-                  <AnimatedCounter
-                    value={s.value}
-                    suffix={s.suffix}
-                    prefix={s.prefix}
-                    decimals={s.decimals}
-                  />
-                </div>
-                <p className="text-sm text-gray-400">{s.label}</p>
-              </div>
-            </FadeIn>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ================================================================== */
 /*  7 · SERVER STATUS                                                  */
 /* ================================================================== */
 
 function ServerStatus() {
+  const [nodes, setNodes] = useState<Array<{
+    id: number; name: string; location: string | null; country: string | null;
+    is_online: boolean; ping_ms: number | null; last_ping_at: string | null;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+    fetch(`${API_URL}/api/v1/public/nodes/status`)
+      .then(r => r.json())
+      .then(data => { setNodes(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const displayNodes = nodes.length > 0 ? nodes : [
+    { id: 0, name: "NL-AMS-1", location: "Амстердам", country: "Нидерланды", is_online: true, ping_ms: null, last_ping_at: null },
+  ];
+
   return (
     <section id="servers" className="relative py-24 md:py-32">
       <div className="max-w-7xl mx-auto px-6">
@@ -829,35 +745,45 @@ function ServerStatus() {
             Статус <GradientText>дата-центров</GradientText>
           </h2>
           <p className="mt-4 text-gray-400 max-w-2xl mx-auto">
-            Все серверы расположены в надёжных дата-центрах Tier&nbsp;III+ в&nbsp;Европе
+            Мониторинг серверов в реальном времени
           </p>
         </FadeIn>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {SERVERS.map((srv, i) => (
-            <FadeIn key={srv.location} delay={i * 0.1}>
-              <div className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 hover:border-green-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-3xl">{srv.flag}</span>
-                  <span className="flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-400" />
+        <div className="flex justify-center">
+          <div className="grid sm:grid-cols-1 gap-6 max-w-sm">
+            {displayNodes.map((node, i) => (
+              <FadeIn key={node.id || i} delay={i * 0.1}>
+                <div className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-2xl p-6 hover:border-green-500/20 transition-all duration-300 hover:-translate-y-1 min-w-[280px]">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-3xl">🇳🇱</span>
+                    <span className="flex items-center gap-2">
+                      <span className="relative flex h-2.5 w-2.5">
+                        {node.is_online ? (
+                          <>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-400" />
+                          </>
+                        ) : (
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-400" />
+                        )}
+                      </span>
+                      <span className={`text-xs font-medium uppercase tracking-wider ${node.is_online ? "text-green-400" : "text-red-400"}`}>
+                        {node.is_online ? "Online" : "Offline"}
+                      </span>
                     </span>
-                    <span className="text-xs font-medium text-green-400 uppercase tracking-wider">
-                      Online
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">{node.location || "Амстердам"}</h3>
+                  <p className="text-sm text-gray-400 mt-0.5">{node.country || "Нидерланды"}</p>
+                  <div className="mt-4 flex items-center gap-2 text-sm">
+                    <Activity className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-400">
+                      Пинг: {node.ping_ms && node.ping_ms > 0 ? `${node.ping_ms} мс` : "—"}
                     </span>
-                  </span>
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-white">{srv.location}</h3>
-                <p className="text-sm text-gray-400 mt-0.5">{srv.country}</p>
-                <div className="mt-4 flex items-center gap-2 text-sm">
-                  <Activity className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-400">Пинг: {srv.ping}</span>
-                </div>
-              </div>
-            </FadeIn>
-          ))}
+              </FadeIn>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -890,13 +816,13 @@ function InfoSection() {
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
                 <p className="text-sm text-gray-400 leading-relaxed mb-6 flex-1">{item.desc}</p>
-                <a
-                  href="#"
+                <Link
+                  href={item.href}
                   className="inline-flex items-center gap-2 text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors"
                 >
                   {item.btn}
                   <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                </Link>
               </div>
             </FadeIn>
           ))}
@@ -958,100 +884,28 @@ function FAQ() {
         </FadeIn>
 
         <div className="space-y-4">
-          {FAQ_DATA.map((item, i) => (
+          {FAQ_DATA.slice(0, 4).map((item, i) => (
             <FadeIn key={i} delay={i * 0.08}>
               <FAQItem q={item.q} a={item.a} />
             </FadeIn>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
 
-/* ================================================================== */
-/*  10 · CONTACTS                                                      */
-/* ================================================================== */
-
-function Contacts() {
-  const channels = [
-    {
-      icon: Mail,
-      title: "Email",
-      value: "support@infinitycloud.ru",
-    },
-    {
-      icon: Send,
-      title: "Telegram",
-      value: "@infinitycloud_support",
-    },
-    {
-      icon: Headphones,
-      title: "Live-чат",
-      value: "Среднее время ответа — 3 мин",
-    },
-  ];
-
-  return (
-    <section id="contacts" className="relative py-24 md:py-32">
-      <div className="max-w-7xl mx-auto px-6">
-        <FadeIn className="text-center mb-16">
-          <span className="inline-block text-xs font-semibold tracking-[0.2em] uppercase text-purple-400 mb-4">
-            Контакты
-          </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">
-            Свяжитесь с <GradientText>нами</GradientText>
-          </h2>
-          <p className="mt-4 text-gray-400 max-w-2xl mx-auto">
-            Наша команда поддержки готова помочь вам 24/7
-          </p>
-        </FadeIn>
-
-        {/* Channel cards */}
-        <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
-          {channels.map((ch, i) => (
-            <FadeIn key={ch.title} delay={i * 0.1}>
-              <div className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-2xl p-7 text-center hover:border-purple-500/20 transition-all duration-300 hover:-translate-y-1">
-                <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mx-auto mb-4">
-                  <ch.icon className="w-6 h-6 text-purple-400" />
-                </div>
-                <h3 className="font-semibold text-white mb-1">{ch.title}</h3>
-                <p className="text-sm text-gray-400">{ch.value}</p>
-              </div>
-            </FadeIn>
-          ))}
-        </div>
-
-        {/* Contact form (UI only) */}
-        <FadeIn className="max-w-2xl mx-auto">
-          <div className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-2xl p-8">
-            <h3 className="text-lg font-semibold text-white mb-6">Напишите нам</h3>
-            <div className="grid sm:grid-cols-2 gap-4 mb-4">
-              <input
-                type="text"
-                placeholder="Ваше имя"
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/40 transition-colors"
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/40 transition-colors"
-              />
-            </div>
-            <textarea
-              rows={4}
-              placeholder="Ваше сообщение…"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/40 transition-colors resize-none mb-4"
-            />
-            <button className="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-medium py-3 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/25 hover:scale-[1.01] active:scale-[0.99]">
-              Отправить сообщение
-            </button>
-          </div>
+        <FadeIn className="text-center mt-10">
+          <Link
+            href="/faq"
+            className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 font-medium transition-colors"
+          >
+            Все вопросы и ответы
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </FadeIn>
       </div>
     </section>
   );
 }
+
+
 
 /* ================================================================== */
 /*  11 · FINAL CTA                                                     */
@@ -1162,11 +1016,9 @@ export default function HomePage() {
       <Features />
       <Pricing />
       <HowItWorks />
-      <StatsSection />
       <ServerStatus />
       <InfoSection />
       <FAQ />
-      <Contacts />
       <FinalCTA />
       <Footer />
     </div>

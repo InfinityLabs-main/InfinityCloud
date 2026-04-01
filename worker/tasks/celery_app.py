@@ -21,6 +21,7 @@ celery_app = Celery(
         "tasks.vm_tasks",
         "tasks.billing_tasks",
         "tasks.node_alerts",
+        "tasks.node_ping_task",
     ],
 )
 
@@ -50,6 +51,7 @@ celery_app.conf.update(
         "tasks.vm_tasks.vm_action_task": {"queue": "vm_action"},
         "tasks.billing_tasks.hourly_billing_task": {"queue": "billing"},
         "tasks.node_alerts.check_node_load_task": {"queue": "billing"},
+        "tasks.node_ping_task.ping_nodes": {"queue": "billing"},
     },
 
     # Расписание Beat
@@ -63,6 +65,11 @@ celery_app.conf.update(
         "node-load-check": {
             "task": "tasks.node_alerts.check_node_load_task",
             "schedule": crontab(minute="*/5"),  # Каждые 5 минут
+        },
+        # Пинг нод — каждые 60 секунд
+        "node-ping": {
+            "task": "tasks.node_ping_task.ping_nodes",
+            "schedule": 60.0,
         },
     },
 )

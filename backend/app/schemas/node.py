@@ -17,6 +17,9 @@ class NodeCreate(BaseModel):
     total_disk_gb: int = Field(ge=0)
     max_vms: int = 100
     is_active: bool = True
+    location: str | None = None
+    country: str | None = None
+    country_code: str | None = None
 
 
 class NodeUpdate(BaseModel):
@@ -28,6 +31,9 @@ class NodeUpdate(BaseModel):
     total_disk_gb: int | None = None
     max_vms: int | None = None
     is_active: bool | None = None
+    location: str | None = None
+    country: str | None = None
+    country_code: str | None = None
 
 
 class NodeOut(BaseModel):
@@ -43,7 +49,27 @@ class NodeOut(BaseModel):
     used_disk_gb: int
     is_active: bool
     max_vms: int
+    location: str | None = None
+    country: str | None = None
+    country_code: str | None = None
+    ping_ms: float | None = None
+    last_ping_at: datetime.datetime | None = None
     created_at: datetime.datetime
+
+    class Config:
+        from_attributes = True
+
+
+class NodePublicStatus(BaseModel):
+    """Публичная информация о ноде (без секретных данных)."""
+    id: int
+    name: str
+    location: str | None = None
+    country: str | None = None
+    country_code: str | None = None
+    is_online: bool
+    ping_ms: float | None = None
+    last_ping_at: datetime.datetime | None = None
 
     class Config:
         from_attributes = True

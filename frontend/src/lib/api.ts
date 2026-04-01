@@ -99,6 +99,21 @@ export interface Node {
   used_disk_gb: number;
   is_active: boolean;
   max_vms: number;
+  location: string | null;
+  country: string | null;
+  ping_ms: number | null;
+  last_ping_at: string | null;
+}
+
+export interface NodePublicStatus {
+  id: number;
+  name: string;
+  location: string | null;
+  country: string | null;
+  country_code: string | null;
+  is_online: boolean;
+  ping_ms: number | null;
+  last_ping_at: string | null;
 }
 
 // ═══════════════════════════════════════════════════
@@ -190,6 +205,20 @@ export const serverApi = {
 export const planApi = {
   list: () => api.get<Plan[]>("/plans"),
   get: (id: number) => api.get<Plan>(`/plans/${id}`),
+};
+
+// ═══════════════════════════════════════════════════
+//  Публичное API (без авторизации)
+// ═══════════════════════════════════════════════════
+
+const publicApiClient = axios.create({
+  baseURL: `${API_URL}/api/v1/public`,
+  headers: { "Content-Type": "application/json" },
+});
+
+export const publicApi = {
+  getNodesStatus: () => publicApiClient.get<NodePublicStatus[]>("/nodes/status"),
+  getPlans: () => publicApiClient.get<Plan[]>("/plans"),
 };
 
 // ═══════════════════════════════════════════════════

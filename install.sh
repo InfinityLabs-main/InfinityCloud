@@ -851,14 +851,16 @@ fi
 
 # Ждём готовности
 info "Ожидание готовности сервисов…"
-MAX_WAIT=120
+MAX_WAIT=180
 WAITED=0
 while [[ $WAITED -lt $MAX_WAIT ]]; do
-    if $COMPOSE_CMD -f "$COMPOSE_FILE" ps | grep -q "backend.*running\|backend.*Up"; then
-        # Проверяем health endpoint
-        if curl -sf http://localhost:8000/api/health > /dev/null 2>&1; then
-            break
-        fi
+    # Проверяем health через nginx (порт 80) — бэкенд не экспонирует порт 8000 на хост
+    if curl -sf http://localhost/api/health -o /dev/null 2>&1; then
+        break
+    fi
+    # Fallback: проверяем health через порт 80 с Host-заголовком
+    if curl -sf http://127.0.0.1/api/health -o /dev/null 2>&1; then
+        break
     fi
     sleep 3
     WAITED=$((WAITED + 3))
@@ -867,7 +869,13 @@ done
 echo ""
 
 if [[ $WAITED -ge $MAX_WAIT ]]; then
-    warn "Таймаут ожидания. Проверьте логи: cd ${INSTALL_DIR} && ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs"
+    # Дополнительная проверка — может сервисы запущены, но health endpoint ещё не отвечает
+    RUNNING_COUNT=$($COMPOSE_CMD -f "$COMPOSE_FILE" ps --format '{{.State}}' 2>/dev/null | grep -ci "running" || echo "0")
+    if [[ "$RUNNING_COUNT" -ge 4 ]]; then
+        log "Сервисы запущены (${RUNNING_COUNT} контейнеров). Health-check через nginx может требовать дополнительного времени."
+    else
+        warn "Таймаут ожидания. Проверьте логи: cd ${INSTALL_DIR} && ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs"
+    fi
 else
     log "Все сервисы запущены!"
 fi

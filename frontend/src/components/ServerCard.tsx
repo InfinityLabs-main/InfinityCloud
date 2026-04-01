@@ -4,12 +4,12 @@ import type { Server } from "@/lib/api";
 import Link from "next/link";
 
 const STATUS_COLORS: Record<string, string> = {
-  running: "bg-green-100 text-green-800",
-  stopped: "bg-gray-100 text-gray-800",
-  creating: "bg-blue-100 text-blue-800",
-  suspended: "bg-yellow-100 text-yellow-800",
-  deleting: "bg-red-100 text-red-800",
-  error: "bg-red-100 text-red-800",
+  running: "bg-green-500/10 text-green-400 border border-green-500/20",
+  stopped: "bg-gray-500/10 text-gray-400 border border-gray-500/20",
+  creating: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+  suspended: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+  deleting: "bg-red-500/10 text-red-400 border border-red-500/20",
+  error: "bg-red-500/10 text-red-400 border border-red-500/20",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -22,20 +22,22 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function ServerCard({ server }: { server: Server }) {
-  const statusClass = STATUS_COLORS[server.status] || "bg-gray-100 text-gray-800";
+  const statusClass = STATUS_COLORS[server.status] || "bg-gray-500/10 text-gray-400";
   const statusLabel = STATUS_LABELS[server.status] || server.status;
 
   return (
     <Link href={`/dashboard/servers/${server.id}`}>
-      <div className="card hover:shadow-md transition-shadow cursor-pointer">
+      <div className="bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6 hover:border-purple-500/20 hover:bg-white/[0.06] transition-all duration-300 cursor-pointer">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="font-semibold text-gray-900">{server.hostname}</h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <h3 className="font-semibold text-white">{server.hostname}</h3>
+            <p className="text-sm text-gray-400 mt-1">
               {server.ip_address || "IP назначается…"}
             </p>
           </div>
-          <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}`}>
+            {statusLabel}
+          </span>
         </div>
 
         <div className="mt-4 flex gap-4 text-xs text-gray-500">

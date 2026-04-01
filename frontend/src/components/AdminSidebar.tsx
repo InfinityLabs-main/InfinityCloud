@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "@/lib/ThemeContext";
 
 const MENU_ITEMS = [
   { href: "/admin", label: "Обзор", icon: "📊" },
@@ -14,21 +13,14 @@ const MENU_ITEMS = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
-  const { dark, toggleDark } = useTheme();
 
   return (
-    <aside className="w-64 bg-dark-800 text-white min-h-screen p-6 flex flex-col">
-      <div className="mb-8 flex items-center justify-between">
-        <Link href="/admin" className="text-lg font-bold text-primary-400">
-          ∞ Admin Panel
+    <aside className="w-64 bg-white/[0.02] backdrop-blur-sm border-r border-white/[0.06] text-white min-h-screen p-6 flex flex-col">
+      <div className="mb-8">
+        <Link href="/admin" className="flex items-center gap-2.5">
+          <span className="text-2xl text-purple-400">∞</span>
+          <span className="text-lg font-bold text-white">Admin Panel</span>
         </Link>
-        <button
-          onClick={toggleDark}
-          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-lg"
-          title={dark ? "Светлая тема" : "Тёмная тема"}
-        >
-          {dark ? "☀️" : "🌙"}
-        </button>
       </div>
 
       <nav className="space-y-1 flex-1">
@@ -38,10 +30,10 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
                 isActive
-                  ? "bg-primary-600 text-white"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
+                  ? "bg-gradient-to-r from-purple-600/20 to-violet-600/10 text-white border border-purple-500/20"
+                  : "text-gray-400 hover:text-white hover:bg-white/[0.04]"
               }`}
             >
               <span>{item.icon}</span>
@@ -51,10 +43,10 @@ export default function AdminSidebar() {
         })}
       </nav>
 
-      <div className="mt-8 pt-6 border-t border-white/10">
+      <div className="mt-8 pt-6 border-t border-white/[0.06]">
         <Link
           href="/dashboard"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5"
+          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/[0.04] transition-colors"
         >
           ← Панель клиента
         </Link>

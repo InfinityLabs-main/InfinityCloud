@@ -20,7 +20,7 @@ from app.middleware.correlation_id import CorrelationIdMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 
 # Импорт роутеров
-from app.routers import admin, auth, console, payments, plans, servers, users
+from app.routers import admin, auth, console, payments, plans, public, servers, users
 
 
 # ── Structured JSON Logging (ELK/Loki) ───────────────
@@ -178,6 +178,7 @@ app.include_router(plans.router, prefix="/api/v1/plans", tags=["Тарифы"])
 app.include_router(console.router, prefix="/api/v1/console", tags=["Консоль"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Админ-панель"])
 app.include_router(payments.router, prefix="/api/v1/payments", tags=["Платежи"])
+app.include_router(public.router, prefix="/api/v1/public", tags=["Публичное"])
 
 # Backward-compatible aliases (без версии)
 app.include_router(auth.router, prefix="/api/auth", tags=["Авторизация"], include_in_schema=False)
@@ -187,6 +188,7 @@ app.include_router(plans.router, prefix="/api/plans", tags=["Тарифы"], inc
 app.include_router(console.router, prefix="/api/console", tags=["Консоль"], include_in_schema=False)
 app.include_router(admin.router, prefix="/api/admin", tags=["Админ-панель"], include_in_schema=False)
 app.include_router(payments.router, prefix="/api/payments", tags=["Платежи"], include_in_schema=False)
+app.include_router(public.router, prefix="/api/public", tags=["Публичное"], include_in_schema=False)
 
 
 # ── Health Check (с DB + Redis) ──────────────────────
