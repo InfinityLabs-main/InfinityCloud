@@ -89,39 +89,39 @@ export default function ServerDetailPage() {
 
   if (loading || !server) {
     return (
-      <>
+      <div className="min-h-screen bg-[#060010]">
         <Navbar />
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-400">Загрузка…</div>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-[#060010]">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Заголовок */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-white">
               {server.hostname}
             </h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-gray-400 mt-1">
               {server.ip_address || "IP назначается…"} · VMID:{" "}
               {server.proxmox_vmid || "—"}
             </p>
           </div>
           <span
-            className={`status-badge text-sm ${
+            className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
               server.status === "running"
-                ? "bg-green-100 text-green-800"
+                ? "bg-green-500/10 text-green-400 border border-green-500/20"
                 : server.status === "stopped"
-                ? "bg-gray-100 text-gray-800"
+                ? "bg-gray-500/10 text-gray-400 border border-gray-500/20"
                 : server.status === "suspended"
-                ? "bg-yellow-100 text-yellow-800"
-                : "bg-blue-100 text-blue-800"
+                ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
             }`}
           >
             {server.status}
@@ -129,8 +129,8 @@ export default function ServerDetailPage() {
         </div>
 
         {/* Действия */}
-        <div className="card mb-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Управление</h2>
+        <div className="bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6 mb-6">
+          <h2 className="font-semibold text-white mb-4">Управление</h2>
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => handleAction("start")}
@@ -168,12 +168,12 @@ export default function ServerDetailPage() {
 
         {/* Консоль noVNC */}
         {showConsole && consoleUrl && (
-          <div className="card mb-6">
-            <h2 className="font-semibold text-gray-900 mb-4">
+          <div className="bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6 mb-6">
+            <h2 className="font-semibold text-white mb-4">
               noVNC Консоль
               <button
                 onClick={() => setShowConsole(false)}
-                className="text-sm text-gray-400 hover:text-gray-600 ml-4"
+                className="text-sm text-gray-400 hover:text-gray-300 ml-4"
               >
                 ✕ Закрыть
               </button>
@@ -187,26 +187,26 @@ export default function ServerDetailPage() {
         )}
 
         {/* Информация */}
-        <div className="card mb-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Информация</h2>
+        <div className="bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6 mb-6">
+          <h2 className="font-semibold text-white mb-4">Информация</h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-500">ID:</span>
-              <span className="ml-2 font-medium">#{server.id}</span>
+              <span className="text-gray-400">ID:</span>
+              <span className="ml-2 font-medium text-white">#{server.id}</span>
             </div>
             <div>
-              <span className="text-gray-500">ОС:</span>
-              <span className="ml-2 font-medium">{server.os_template}</span>
+              <span className="text-gray-400">ОС:</span>
+              <span className="ml-2 font-medium text-white">{server.os_template}</span>
             </div>
             <div>
-              <span className="text-gray-500">IP:</span>
-              <span className="ml-2 font-medium">
+              <span className="text-gray-400">IP:</span>
+              <span className="ml-2 font-medium text-white">
                 {server.ip_address || "—"}
               </span>
             </div>
             <div>
-              <span className="text-gray-500">Создан:</span>
-              <span className="ml-2 font-medium">
+              <span className="text-gray-400">Создан:</span>
+              <span className="ml-2 font-medium text-white">
                 {new Date(server.created_at).toLocaleString("ru")}
               </span>
             </div>
@@ -214,15 +214,15 @@ export default function ServerDetailPage() {
         </div>
 
         {/* rDNS */}
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 mb-4">rDNS запись</h2>
+        <div className="bg-white/[0.04] backdrop-blur-sm border border-white/[0.08] rounded-2xl p-6">
+          <h2 className="font-semibold text-white mb-4">rDNS запись</h2>
           <div className="flex gap-2">
             <input
               type="text"
               value={rdns}
               onChange={(e) => setRdns(e.target.value)}
               placeholder="server.example.com"
-              className="input-field flex-1"
+              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/40"
             />
             <button onClick={handleRdns} className="btn-primary">
               Сохранить
@@ -230,6 +230,6 @@ export default function ServerDetailPage() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

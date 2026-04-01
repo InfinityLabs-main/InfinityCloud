@@ -3,6 +3,19 @@
 import { useEffect, useState } from "react";
 import { adminApi, type Node } from "@/lib/api";
 
+function Field({
+  label, error, hint, children,
+}: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
+      {children}
+      {hint && !error && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}
+      {error && <p className="text-xs text-red-400 mt-0.5">{error}</p>}
+    </div>
+  );
+}
+
 export default function AdminNodesPage() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -119,17 +132,6 @@ export default function AdminNodesPage() {
     loadNodes();
   };
 
-  const Field = ({
-    label, error, children, hint,
-  }: { label: string; error?: string; hint?: string; children: React.ReactNode }) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</label>
-      {children}
-      {hint && !error && <p className="text-xs text-gray-400 mt-0.5">{hint}</p>}
-      {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
-    </div>
-  );
-
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -186,11 +188,11 @@ export default function AdminNodesPage() {
       {/* Форма */}
       {showForm && (
         <div className="card mb-6">
-          <h2 className="font-semibold mb-4 text-gray-900 dark:text-white">
+          <h2 className="font-semibold mb-4 text-white">
             {editNode ? `Редактировать ноду: ${editNode.name}` : "Новая нода"}
           </h2>
 
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Основные данные</h3>
+          <h3 className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wide">Основные данные</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             <Field label="Имя ноды" error={errors.name} hint="Понятное название (PVE-1 Frankfurt)">
               <input value={form.name}
@@ -211,7 +213,7 @@ export default function AdminNodesPage() {
 
           {!editNode && (
             <>
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Авторизация Proxmox API</h3>
+              <h3 className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wide">Авторизация Proxmox API</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                 <Field label="API User" error={errors.api_user} hint="Формат: root@pam">
                   <input value={form.api_user}
@@ -245,7 +247,7 @@ export default function AdminNodesPage() {
             </>
           )}
 
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Ресурсы сервера</h3>
+          <h3 className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wide">Ресурсы сервера</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Field label="CPU (ядер)" error={errors.total_cpu} hint="Общее количество ядер">
               <input type="number" value={form.total_cpu} min={0}
@@ -284,61 +286,61 @@ export default function AdminNodesPage() {
           <div key={node.id} className="card">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">{node.name}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{node.hostname}:{node.port}</p>
+                <h3 className="font-semibold text-white">{node.name}</h3>
+                <p className="text-sm text-gray-400">{node.hostname}:{node.port}</p>
               </div>
-              <span className={`status-badge ${node.is_active ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"}`}>
+              <span className={`status-badge ${node.is_active ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>
                 {node.is_active ? "Активна" : "Отключена"}
               </span>
             </div>
 
             <div className="mt-4 space-y-2">
               <div>
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                <div className="flex justify-between text-xs text-gray-400 mb-1">
                   <span>CPU</span>
                   <span>{node.used_cpu}/{node.total_cpu} ядер</span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-primary-500 rounded-full h-2"
+                <div className="w-full bg-white/[0.06] rounded-full h-2">
+                  <div className="bg-purple-500 rounded-full h-2"
                     style={{ width: `${node.total_cpu ? (node.used_cpu / node.total_cpu) * 100 : 0}%` }} />
                 </div>
               </div>
               <div>
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                <div className="flex justify-between text-xs text-gray-400 mb-1">
                   <span>RAM</span>
                   <span>{(node.used_ram_mb / 1024).toFixed(1)}/{(node.total_ram_mb / 1024).toFixed(1)} ГБ</span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-white/[0.06] rounded-full h-2">
                   <div className="bg-blue-500 rounded-full h-2"
                     style={{ width: `${node.total_ram_mb ? (node.used_ram_mb / node.total_ram_mb) * 100 : 0}%` }} />
                 </div>
               </div>
               <div>
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                <div className="flex justify-between text-xs text-gray-400 mb-1">
                   <span>Disk</span>
                   <span>{node.used_disk_gb}/{node.total_disk_gb} ГБ</span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-white/[0.06] rounded-full h-2">
                   <div className="bg-green-500 rounded-full h-2"
                     style={{ width: `${node.total_disk_gb ? (node.used_disk_gb / node.total_disk_gb) * 100 : 0}%` }} />
                 </div>
               </div>
             </div>
 
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Макс. VM: {node.max_vms}</p>
+            <p className="text-xs text-gray-500 mt-2">Макс. VM: {node.max_vms}</p>
 
-            <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+            <div className="mt-4 pt-3 border-t border-white/[0.06] flex gap-3">
               <button onClick={() => handleEdit(node)}
-                className="text-sm text-primary-600 hover:underline">Редактировать</button>
+                className="text-sm text-purple-400 hover:text-purple-300">Редактировать</button>
               <button onClick={() => handleDelete(node.id)}
-                className="text-sm text-red-600 hover:underline">Деактивировать</button>
+                className="text-sm text-red-400 hover:text-red-300">Деактивировать</button>
             </div>
           </div>
         ))}
       </div>
 
       {nodes.length === 0 && !showForm && (
-        <div className="card text-center text-gray-500 dark:text-gray-400 py-12">
+        <div className="card text-center text-gray-400 py-12">
           <p className="text-lg mb-2">Нет добавленных нод</p>
           <p className="text-sm">Нажмите &quot;+ Добавить ноду&quot; и следуйте инструкции</p>
         </div>

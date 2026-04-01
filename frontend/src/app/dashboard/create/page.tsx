@@ -59,21 +59,21 @@ export default function CreateServerPage() {
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-[#060010]">
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">
+        <h1 className="text-2xl font-bold text-white mb-8">
           Создать новый VPS
         </h1>
 
         {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-6">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-xl mb-6">
             {error}
           </div>
         )}
 
         {/* Шаг 1: Тариф */}
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
+        <h2 className="text-lg font-semibold text-gray-200 mb-4">
           1. Выберите тариф
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
@@ -88,7 +88,7 @@ export default function CreateServerPage() {
         </div>
 
         {/* Шаг 2: ОС */}
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
+        <h2 className="text-lg font-semibold text-gray-200 mb-4">
           2. Операционная система
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
@@ -96,10 +96,10 @@ export default function CreateServerPage() {
             <button
               key={os.value}
               onClick={() => setOsTemplate(os.value)}
-              className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+              className={`p-3 rounded-xl border text-sm font-medium transition-all ${
                 osTemplate === os.value
-                  ? "border-primary-500 bg-primary-50 text-primary-700"
-                  : "border-gray-200 hover:border-gray-300 text-gray-600"
+                  ? "border-purple-500/40 bg-purple-500/10 text-purple-300"
+                  : "border-white/[0.08] hover:border-white/[0.15] text-gray-400 bg-white/[0.03]"
               }`}
             >
               {os.label}
@@ -108,7 +108,7 @@ export default function CreateServerPage() {
         </div>
 
         {/* Шаг 3: Hostname */}
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
+        <h2 className="text-lg font-semibold text-gray-200 mb-4">
           3. Имя сервера
         </h2>
         <input
@@ -116,18 +116,18 @@ export default function CreateServerPage() {
           value={hostname}
           onChange={(e) => setHostname(e.target.value)}
           placeholder="my-server-01"
-          className="input-field max-w-md mb-8"
+          className="w-full max-w-md bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/40 mb-8"
         />
 
         {/* Создать */}
         <button
           onClick={handleCreate}
           disabled={loading || !selectedPlan}
-          className="btn-primary text-lg px-8 py-3 disabled:opacity-50"
+          className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white font-medium text-lg px-8 py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50"
         >
           {loading ? "Создание…" : "Создать VPS"}
         </button>
       </div>
-    </>
+    </div>
   );
 }

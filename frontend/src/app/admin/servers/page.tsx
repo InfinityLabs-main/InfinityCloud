@@ -47,11 +47,11 @@ export default function AdminServersPage() {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case "running": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case "stopped": return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
-      case "suspended": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case "deleted": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      default: return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "running": return "bg-green-500/10 text-green-400 border border-green-500/20";
+      case "stopped": return "bg-gray-500/10 text-gray-400 border border-gray-500/20";
+      case "suspended": return "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20";
+      case "deleted": return "bg-red-500/10 text-red-400 border border-red-500/20";
+      default: return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
     }
   };
 
@@ -67,7 +67,7 @@ export default function AdminServersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Все VPS-серверы</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">Все VPS-серверы</h1>
 
       {/* Фильтры */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -75,12 +75,12 @@ export default function AdminServersPage() {
           placeholder="🔍 Поиск по hostname, IP, email, ID…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="input-field flex-1"
+          className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/40"
         />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="input-field w-auto"
+          className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/40 w-auto"
         >
           <option value="all">Все статусы</option>
           <option value="running">🟢 Running</option>
@@ -94,7 +94,7 @@ export default function AdminServersPage() {
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left text-gray-500 dark:text-gray-400">
+            <tr className="border-b border-white/[0.08] text-left text-gray-400">
               <th className="pb-3 pr-4">ID</th>
               <th className="pb-3 pr-4">Пользователь</th>
               <th className="pb-3 pr-4">Hostname</th>
@@ -106,7 +106,7 @@ export default function AdminServersPage() {
           </thead>
           <tbody>
             {filteredServers.map((s) => (
-              <tr key={s.id} className="border-b border-gray-100 dark:border-gray-700">
+              <tr key={s.id} className="border-b border-white/[0.06]">
                 <td className="py-3 pr-4">#{s.id}</td>
                 <td className="py-3 pr-4">
                   <div className="font-medium">{users[s.user_id]?.email || `#${s.user_id}`}</div>
@@ -121,25 +121,25 @@ export default function AdminServersPage() {
                   <div className="flex gap-2 flex-wrap">
                     {s.status !== "running" && s.status !== "deleted" && (
                       <button onClick={() => handleAction(s.id, "start")}
-                        className="text-green-600 hover:underline text-xs">▶ Start</button>
+                        className="text-green-400 hover:text-green-300 hover:underline text-xs">▶ Start</button>
                     )}
                     {s.status === "running" && (
                       <>
                         <button onClick={() => handleAction(s.id, "stop")}
-                          className="text-gray-600 hover:underline text-xs">⏹ Stop</button>
+                          className="text-gray-400 hover:text-gray-300 hover:underline text-xs">⏹ Stop</button>
                         <button onClick={() => handleAction(s.id, "restart")}
-                          className="text-blue-600 hover:underline text-xs">🔄 Restart</button>
+                          className="text-blue-400 hover:text-blue-300 hover:underline text-xs">🔄 Restart</button>
                         <button onClick={() => handleAction(s.id, "suspend")}
-                          className="text-yellow-600 hover:underline text-xs">⏸ Suspend</button>
+                          className="text-yellow-400 hover:text-yellow-300 hover:underline text-xs">⏸ Suspend</button>
                       </>
                     )}
                     {s.status === "suspended" && (
                       <button onClick={() => handleAction(s.id, "unsuspend")}
-                        className="text-primary-600 hover:underline text-xs">▶ Unsuspend</button>
+                        className="text-purple-400 hover:text-purple-300 hover:underline text-xs">▶ Unsuspend</button>
                     )}
                     {s.status !== "deleted" && (
                       <button onClick={() => handleDelete(s.id)}
-                        className="text-red-600 hover:underline text-xs">🗑 Удалить</button>
+                        className="text-red-400 hover:text-red-300 hover:underline text-xs">🗑 Удалить</button>
                     )}
                   </div>
                 </td>
@@ -159,7 +159,7 @@ export default function AdminServersPage() {
       <div className="flex gap-2 mt-4">
         <button onClick={() => setPage(Math.max(1, page - 1))}
           disabled={page === 1} className="btn-secondary disabled:opacity-50">← Назад</button>
-        <span className="flex items-center px-4 text-sm text-gray-500 dark:text-gray-400">Стр. {page}</span>
+        <span className="flex items-center px-4 text-sm text-gray-400">Стр. {page}</span>
         <button onClick={() => setPage(page + 1)} className="btn-secondary">Вперёд →</button>
       </div>
     </div>

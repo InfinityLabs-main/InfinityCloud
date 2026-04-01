@@ -20,7 +20,7 @@ export default function AdminLayout({
 
   return (
     <div className="dark">
-      <div className="flex min-h-screen bg-[#060010]">
+      <div className="flex min-h-screen bg-[#060010] text-gray-200">
         <AdminSidebar />
         <main className="flex-1 p-8">{children}</main>
       </div>

@@ -153,11 +153,31 @@ const INFO_BLOCKS = [
   },
 ];
 
-const FOOTER_LINKS: Record<string, string[]> = {
-  Продукт: ["VPS-серверы", "Тарифы", "DDoS-защита", "SLA"],
-  Компания: ["О нас", "Блог", "Вакансии", "Партнёрам"],
-  Поддержка: ["Документация", "Статус серверов", "Связаться", "FAQ"],
-  Юридическое: ["Оферта", "Конфиденциальность", "Cookies", "Лицензии"],
+const FOOTER_LINKS: Record<string, { label: string; href: string }[]> = {
+  Продукт: [
+    { label: "VPS-серверы", href: "#pricing" },
+    { label: "Тарифы", href: "#pricing" },
+    { label: "DDoS-защита", href: "#features" },
+    { label: "SLA", href: "/documents/sla" },
+  ],
+  Компания: [
+    { label: "О нас", href: "#docs" },
+    { label: "Блог", href: "#" },
+    { label: "Вакансии", href: "#" },
+    { label: "Партнёрам", href: "#" },
+  ],
+  Поддержка: [
+    { label: "Документация", href: "#docs" },
+    { label: "Статус серверов", href: "#servers" },
+    { label: "Связаться", href: "#" },
+    { label: "FAQ", href: "/faq" },
+  ],
+  Юридическое: [
+    { label: "Условия использования", href: "/documents/terms" },
+    { label: "Конфиденциальность", href: "/documents/privacy" },
+    { label: "Правила использования", href: "/documents/aup" },
+    { label: "Политика возвратов", href: "/documents/refund" },
+  ],
 };
 
 /* ================================================================== */
@@ -969,13 +989,22 @@ function Footer() {
               <h4 className="text-sm font-semibold text-white mb-4">{title}</h4>
               <ul className="space-y-2.5">
                 {links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
-                      className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
-                    >
-                      {link}
-                    </a>
+                  <li key={link.label}>
+                    {link.href.startsWith("/") ? (
+                      <Link
+                        href={link.href}
+                        className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => link.href.startsWith("#") ? scrollTo(link.href.slice(1)) : undefined}
+                        className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                      >
+                        {link.label}
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -3,6 +3,18 @@
 import { useEffect, useState } from "react";
 import { planApi, adminApi, type Plan } from "@/lib/api";
 
+function Field({
+  label, error, children,
+}: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
+      {children}
+      {error && <p className="text-xs text-red-400 mt-0.5">{error}</p>}
+    </div>
+  );
+}
+
 export default function AdminPlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -79,16 +91,6 @@ export default function AdminPlansPage() {
     loadPlans();
   };
 
-  const Field = ({
-    label, error, children,
-  }: { label: string; error?: string; children: React.ReactNode }) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</label>
-      {children}
-      {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
-    </div>
-  );
-
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -101,7 +103,7 @@ export default function AdminPlansPage() {
       {/* Форма */}
       {showForm && (
         <div className="card mb-6">
-          <h2 className="font-semibold mb-4 text-gray-900 dark:text-white">
+          <h2 className="font-semibold mb-4 text-white">
             {editPlan ? "Редактировать тариф" : "Новый тариф"}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -164,7 +166,7 @@ export default function AdminPlansPage() {
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left text-gray-500 dark:text-gray-400">
+            <tr className="border-b border-white/[0.08] text-left text-gray-400">
               <th className="pb-3 pr-4">ID</th>
               <th className="pb-3 pr-4">Название</th>
               <th className="pb-3 pr-4">vCPU</th>
@@ -178,20 +180,20 @@ export default function AdminPlansPage() {
           </thead>
           <tbody>
             {plans.map((plan) => (
-              <tr key={plan.id} className="border-b border-gray-100 dark:border-gray-700">
-                <td className="py-3 pr-4">{plan.id}</td>
-                <td className="py-3 pr-4 font-medium">{plan.name}</td>
-                <td className="py-3 pr-4">{plan.cpu_cores}</td>
-                <td className="py-3 pr-4">{plan.ram_mb} МБ</td>
-                <td className="py-3 pr-4">{plan.disk_gb} ГБ</td>
-                <td className="py-3 pr-4">{plan.price_per_hour}</td>
-                <td className="py-3 pr-4">{plan.price_per_month}</td>
-                <td className="py-3 pr-4">{plan.sort_order}</td>
+              <tr key={plan.id} className="border-b border-white/[0.06]">
+                <td className="py-3 pr-4 text-gray-300">{plan.id}</td>
+                <td className="py-3 pr-4 font-medium text-white">{plan.name}</td>
+                <td className="py-3 pr-4 text-gray-300">{plan.cpu_cores}</td>
+                <td className="py-3 pr-4 text-gray-300">{plan.ram_mb} МБ</td>
+                <td className="py-3 pr-4 text-gray-300">{plan.disk_gb} ГБ</td>
+                <td className="py-3 pr-4 text-gray-300">{plan.price_per_hour}</td>
+                <td className="py-3 pr-4 text-gray-300">{plan.price_per_month}</td>
+                <td className="py-3 pr-4 text-gray-300">{plan.sort_order}</td>
                 <td className="py-3">
                   <button onClick={() => handleEdit(plan)}
-                    className="text-primary-600 hover:underline mr-3">Изменить</button>
+                    className="text-purple-400 hover:text-purple-300 mr-3">Изменить</button>
                   <button onClick={() => handleDelete(plan.id)}
-                    className="text-red-600 hover:underline">Удалить</button>
+                    className="text-red-400 hover:text-red-300">Удалить</button>
                 </td>
               </tr>
             ))}
