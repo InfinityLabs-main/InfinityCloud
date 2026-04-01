@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { serverApi, planApi, consoleApi, type Server, type Plan } from "@/lib/api";
@@ -56,6 +56,23 @@ function MiniChart({ label, value, unit, color, data }: { label: string; value: 
 /* Generate mock data */
 function mockData(base: number, variance: number, len = 20): number[] {
   return Array.from({ length: len }, () => base + (Math.random() - 0.5) * variance * 2);
+}
+
+/* Graphs with memoized mock data — avoid regeneration on every render */
+function MiniCharts({ plan }: { plan: Plan | null }) {
+  const chartData = useMemo(() => ({
+    cpu: { value: (25 + Math.random() * 30).toFixed(1), data: mockData(30, 15) },
+    ram: { value: plan ? (plan.ram_mb * 0.6 / 1024).toFixed(1) : "1.2", data: mockData(60, 10) },
+    net: { value: (Math.random() * 50 + 5).toFixed(1), data: mockData(25, 20) },
+  }), [plan]);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <MiniChart label="CPU" value={chartData.cpu.value} unit="%" color="#8b5cf6" data={chartData.cpu.data} />
+      <MiniChart label="RAM" value={chartData.ram.value} unit="ГБ" color="#06b6d4" data={chartData.ram.data} />
+      <MiniChart label="Сеть" value={chartData.net.value} unit="Мбит/с" color="#22c55e" data={chartData.net.data} />
+    </div>
+  );
 }
 
 export default function ServerDetailPage() {
@@ -232,11 +249,7 @@ export default function ServerDetailPage() {
 
       {/* ═══ Graphs ═══ */}
       {isRunning && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MiniChart label="CPU" value={`${(25 + Math.random() * 30).toFixed(1)}`} unit="%" color="#8b5cf6" data={mockData(30, 15)} />
-          <MiniChart label="RAM" value={`${(plan ? (plan.ram_mb * 0.6 / 1024).toFixed(1) : "1.2")}`} unit="ГБ" color="#06b6d4" data={mockData(60, 10)} />
-          <MiniChart label="Сеть" value={`${(Math.random() * 50 + 5).toFixed(1)}`} unit="Мбит/с" color="#22c55e" data={mockData(25, 20)} />
-        </div>
+        <MiniCharts plan={plan} />
       )}
 
       {/* ═══ Console ═══ */}

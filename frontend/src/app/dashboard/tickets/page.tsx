@@ -41,6 +41,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Другое",
 };
 
+/** Русская плюрализация: 1 тикет, 2 тикета, 5 тикетов, 21 тикет, 111 тикетов */
+function pluralize(n: number, one: string, few: string, many: string): string {
+  const abs = Math.abs(n);
+  const mod10 = abs % 10;
+  const mod100 = abs % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<TicketItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -76,7 +86,7 @@ export default function TicketsPage() {
           <div>
             <h1 className="text-2xl font-bold text-white">Поддержка</h1>
             <p className="text-sm text-gray-400 mt-1">
-              {total} {total === 1 ? "тикет" : total < 5 ? "тикета" : "тикетов"}
+              {total} {pluralize(total, "тикет", "тикета", "тикетов")}
             </p>
           </div>
           <Link

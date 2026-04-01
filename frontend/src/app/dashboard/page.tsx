@@ -167,7 +167,7 @@ export default function DashboardPage() {
           { label: "Всего серверов", value: totalServers, icon: "☁️", accent: "from-blue-500/10 border-blue-500/15" },
           { label: "Активных", value: activeServers, icon: "🟢", accent: "from-green-500/10 border-green-500/15" },
           { label: "Остановленных", value: stoppedServers, icon: "⏸️", accent: "from-gray-500/10 border-gray-500/15" },
-          { label: "Расход в мес.", value: `~${(activeServers * 250).toFixed(0)}₽`, icon: "📉", accent: "from-orange-500/10 border-orange-500/15" },
+          { label: "Расход в мес.", value: `${activeServers} акт.`, icon: "📉", accent: "from-orange-500/10 border-orange-500/15" },
         ].map((card) => (
           <div
             key={card.label}

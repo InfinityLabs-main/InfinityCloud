@@ -7,6 +7,7 @@ import api from "@/lib/api";
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   // Password change
   const [currentPassword, setCurrentPassword] = useState("");
@@ -16,7 +17,10 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    authApi.me().then((r) => { setUser(r.data); }).catch(() => {}).finally(() => setLoading(false));
+    authApi.me()
+      .then((r) => { setUser(r.data); })
+      .catch(() => { setLoadError("Не удалось загрузить профиль"); })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleChangePassword = async () => {
@@ -48,10 +52,21 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (loadError || !user) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <p className="text-red-400 text-sm">{loadError || "Профиль недоступен"}</p>
+        <button onClick={() => window.location.reload()} className="text-purple-400 hover:text-purple-300 text-sm transition-colors">
+          Попробовать снова
+        </button>
       </div>
     );
   }

@@ -21,10 +21,12 @@ export function useAuthGuard(options: AuthGuardOptions = {}) {
   useEffect(() => {
     if (!isAuthenticated()) {
       router.replace("/login");
+      setChecked(true);
       return;
     }
     if (options.requireAdmin && !isAdmin()) {
       router.replace("/dashboard");
+      setChecked(true);
       return;
     }
     setAllowed(true);

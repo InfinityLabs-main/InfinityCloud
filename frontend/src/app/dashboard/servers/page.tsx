@@ -75,14 +75,10 @@ export default function ServersPage() {
     return true;
   });
 
-  const statusCounts = {
-    all: servers.length,
-    running: servers.filter((s) => s.status === "running").length,
-    stopped: servers.filter((s) => s.status === "stopped").length,
-    creating: servers.filter((s) => s.status === "creating").length,
-    suspended: servers.filter((s) => s.status === "suspended").length,
-    error: servers.filter((s) => s.status === "error").length,
-  };
+  const statusCounts = servers.reduce<Record<string, number>>(
+    (acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; acc.all++; return acc; },
+    { all: 0, running: 0, stopped: 0, creating: 0, suspended: 0, error: 0 }
+  );
 
   if (loading) {
     return (
@@ -218,7 +214,7 @@ export default function ServersPage() {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 justify-end sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         {s.status === "stopped" && (
                           <button
                             onClick={(e) => handleAction(s.id, "start", e)}

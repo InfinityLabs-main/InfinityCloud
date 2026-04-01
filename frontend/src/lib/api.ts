@@ -14,9 +14,11 @@ const api = axios.create({
 
 // Interceptor — добавляем JWT токен к каждому запросу
 api.interceptors.request.use((config) => {
-  const token = Cookies.get("access_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (typeof window !== "undefined") {
+    const token = Cookies.get("access_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -132,7 +134,7 @@ export const authApi = {
     Cookies.set("access_token", resp.data.access_token, {
       expires: 1,
       sameSite: "strict",
-      secure: window.location.protocol === "https:",
+      secure: typeof window !== "undefined" && window.location.protocol === "https:",
     });
     return resp.data;
   },

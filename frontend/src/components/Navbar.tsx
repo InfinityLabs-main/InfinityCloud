@@ -26,7 +26,7 @@ export default function Navbar() {
           <div className="flex items-center gap-6">
             {user && (
               <>
-                <Link href="/dashboard" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <Link href="/dashboard/servers" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Серверы
                 </Link>
                 <Link href="/dashboard/create" className="text-sm text-gray-400 hover:text-white transition-colors">

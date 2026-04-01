@@ -103,30 +103,48 @@ export default function TicketChatPage() {
     const token = getToken();
     if (!token) return;
 
-    const ws = new WebSocket(`${WS_URL}/ws/tickets`);
-    wsRef.current = ws;
+    let closedIntentionally = false;
+    let retries = 0;
+    let reconnectTimer: ReturnType<typeof setTimeout>;
 
-    ws.onopen = () => ws.send(JSON.stringify({ token }));
+    function connect() {
+      const ws = new WebSocket(`${WS_URL}/ws/tickets`);
+      wsRef.current = ws;
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.ticket_id === ticketId && data.event === "new_message") {
-          loadTicket();
-        }
-        if (data.ticket_id === ticketId && data.event === "status_changed") {
-          setTicket((prev) => prev ? { ...prev, status: data.status } : prev);
-        }
-      } catch {}
+      ws.onopen = () => {
+        retries = 0;
+        ws.send(JSON.stringify({ token }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.ticket_id === ticketId && data.event === "new_message") {
+            loadTicket();
+          }
+          if (data.ticket_id === ticketId && data.event === "status_changed") {
+            setTicket((prev) => prev ? { ...prev, status: data.status } : prev);
+          }
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        if (closedIntentionally) return;
+        const delay = Math.min(3000 * Math.pow(2, retries), 30000);
+        retries++;
+        reconnectTimer = setTimeout(connect, delay);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    connect();
+
+    return () => {
+      closedIntentionally = true;
+      clearTimeout(reconnectTimer);
+      wsRef.current?.close();
     };
-
-    ws.onclose = () => {
-      setTimeout(() => {
-        // Reconnect logic simplified
-      }, 5000);
-    };
-
-    return () => ws.close();
   }, [ticketId]);
 
   const loadTicket = async () => {
@@ -304,12 +322,25 @@ export default function TicketChatPage() {
                   {msg.attachments.length > 0 && (
                     <div className="mt-3 space-y-1.5">
                       {msg.attachments.map((a) => (
-                        <a
+                        <button
                           key={a.id}
-                          href={`${API_URL}/api/v1/tickets/attachments/${a.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 bg-white/[0.04] border border-white/[0.06] rounded-lg hover:bg-white/[0.08] transition-colors"
+                          onClick={async () => {
+                            try {
+                              const res = await api.get(
+                                `/tickets/attachments/${a.id}`,
+                                { responseType: "blob" }
+                              );
+                              const url = URL.createObjectURL(res.data);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = a.original_filename;
+                              link.click();
+                              URL.revokeObjectURL(url);
+                            } catch {
+                              alert("Ошибка скачивания файла");
+                            }
+                          }}
+                          className="flex items-center gap-2 px-3 py-2 bg-white/[0.04] border border-white/[0.06] rounded-lg hover:bg-white/[0.08] transition-colors w-full text-left"
                         >
                           <span className="text-sm">📎</span>
                           <span className="text-xs text-gray-300 truncate flex-1">
@@ -318,7 +349,7 @@ export default function TicketChatPage() {
                           <span className="text-xs text-gray-500">
                             {formatFileSize(a.size_bytes)}
                           </span>
-                        </a>
+                        </button>
                       ))}
                     </div>
                   )}

@@ -19,7 +19,11 @@ export default function HistoryPage() {
 
   useEffect(() => { load(); }, [page]);
 
+  // При смене фильтра сбрасываем на первую страницу
+  useEffect(() => { setPage(1); }, [filterType]);
+
   const load = async () => {
+    setLoading(true);
     try {
       const res = await userApi.getTransactions(page);
       setTransactions(res.data.items);
@@ -35,7 +39,7 @@ export default function HistoryPage() {
   const totalPages = Math.ceil(total / perPage);
   const filtered = filterType === "all" ? transactions : transactions.filter((t) => t.type === filterType);
 
-  // Stats
+  // Статистика за текущую страницу (не за весь период)
   const totalDeposits = transactions.filter((t) => t.amount > 0).reduce((a, t) => a + t.amount, 0);
   const totalCharges = transactions.filter((t) => t.amount < 0).reduce((a, t) => a + Math.abs(t.amount), 0);
 
@@ -61,11 +65,11 @@ export default function HistoryPage() {
           <p className="text-2xl font-bold text-white mt-1">{total}</p>
         </div>
         <div className="bg-green-500/5 border border-green-500/10 rounded-2xl p-5">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Пополнения</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Пополнения (стр.)</p>
           <p className="text-2xl font-bold text-green-400 mt-1">+{totalDeposits.toFixed(2)} ₽</p>
         </div>
         <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-5">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Списания</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Списания (стр.)</p>
           <p className="text-2xl font-bold text-red-400 mt-1">-{totalCharges.toFixed(2)} ₽</p>
         </div>
       </div>

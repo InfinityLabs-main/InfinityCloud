@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * ThemeContext — не используется в текущей версии.
+ * Приложение использует фиксированную тёмную тему.
+ * Оставлен для возможного будущего использования.
+ */
+
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 interface ThemeCtx {

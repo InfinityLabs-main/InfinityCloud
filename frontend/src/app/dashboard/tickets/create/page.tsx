@@ -59,9 +59,9 @@ export default function CreateTicketPage() {
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     if (!form.subject.trim()) e.subject = "Введите тему";
-    if (form.subject.length > 255) e.subject = "Макс. 255 символов";
+    else if (form.subject.length > 255) e.subject = "Макс. 255 символов";
     if (!form.body.trim()) e.body = "Опишите проблему";
-    if (form.body.length < 5) e.body = "Минимум 5 символов";
+    else if (form.body.trim().length < 5) e.body = "Минимум 5 символов";
     setErrors(e);
     return Object.keys(e).length === 0;
   };

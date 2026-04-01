@@ -4,6 +4,7 @@
 import Cookies from "js-cookie";
 
 export function getToken(): string | undefined {
+  if (typeof window === "undefined") return undefined;
   return Cookies.get("access_token");
 }
 

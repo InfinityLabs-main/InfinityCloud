@@ -94,8 +94,8 @@ async def deposit_user(
             logger.info(f"Авто-unsuspend VPS #{server.id} после пополнения (user_id={user_id})")
             # Отправляем задачу на запуск
             try:
-                from tasks.vm_tasks import vm_action_task
-                vm_action_task.delay(server.id, "start")
+                from app.celery_client import send_vm_action
+                send_vm_action(server.id, "start")
             except Exception:
                 pass
 

@@ -1,12 +1,11 @@
 """
-Celery-задача мониторинга нод — алерт при высокой загрузке.
-
-Запускается Celery Beat каждые 5 минут.
-Проверяет загрузку CPU/RAM/Disk каждой активной ноды.
-Если порог превышен — отправляет email администратору.
-Использует Redis-флаг для дедупликации (1 алерт в час на ноду).
+DEPRECATED — этот файл дублирует node_alerts.py.
+Используется node_alerts.py (зарегистрирован в celery_app.py beat_schedule).
+Этот файл можно безопасно удалить.
 """
-from __future__ import annotations
+raise ImportError(
+    "node_alert_tasks.py is deprecated. Use node_alerts.py instead."
+)
 
 import asyncio
 import os

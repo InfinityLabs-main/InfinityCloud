@@ -142,8 +142,8 @@ async def create_server(
     await db.flush()
 
     # 6. Отправляем задачу в Celery
-    from tasks.vm_tasks import create_vm_task
-    create_vm_task.delay(server.id)
+    from app.celery_client import send_vm_create
+    send_vm_create(server.id)
 
     return _server_to_out(server)
 
@@ -183,8 +183,8 @@ async def server_action(
         raise HTTPException(status_code=400, detail="Сервер ещё создаётся")
 
     # Отправляем задачу на выполнение действия
-    from tasks.vm_tasks import vm_action_task
-    vm_action_task.delay(server.id, body.action)
+    from app.celery_client import send_vm_action
+    send_vm_action(server.id, body.action)
 
     # Обновляем статус оптимистично
     action_status_map = {
@@ -242,5 +242,5 @@ async def delete_server(
     server.status = "deleting"
     await db.flush()
 
-    from tasks.vm_tasks import delete_vm_task
-    delete_vm_task.delay(server.id)
+    from app.celery_client import send_vm_delete
+    send_vm_delete(server.id)

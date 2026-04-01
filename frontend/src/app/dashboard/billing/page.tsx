@@ -25,6 +25,7 @@ export default function BillingPage() {
   useEffect(() => { loadData(); }, [page]);
 
   const loadData = async () => {
+    setLoading(true);
     try {
       const [balRes, txRes] = await Promise.all([
         userApi.getBalance(),

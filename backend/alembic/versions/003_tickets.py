@@ -1,7 +1,7 @@
 """Система тикетов — tickets, ticket_messages, ticket_attachments
 
-Revision ID: 003_tickets
-Revises: 002_security_billing_fixes
+Revision ID: 004_tickets
+Revises: 003_node_location_ping
 Create Date: 2026-04-01
 """
 from typing import Sequence, Union
@@ -9,8 +9,8 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-revision: str = "003_tickets"
-down_revision: Union[str, None] = "002_security_billing_fixes"
+revision: str = "004_tickets"
+down_revision: Union[str, None] = "003_node_location_ping"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

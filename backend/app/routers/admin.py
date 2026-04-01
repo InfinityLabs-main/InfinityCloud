@@ -290,8 +290,8 @@ async def admin_server_action(
     if server is None:
         raise HTTPException(status_code=404, detail="Сервер не найден")
 
-    from tasks.vm_tasks import vm_action_task
-    vm_action_task.delay(server.id, body.action)
+    from app.celery_client import send_vm_action
+    send_vm_action(server.id, body.action)
 
     action_status_map = {
         "start": "running", "stop": "stopped", "restart": "running",
@@ -324,8 +324,8 @@ async def admin_delete_server(
 
     # Отправляем задачу на уничтожение VM в Proxmox
     try:
-        from tasks.vm_tasks import vm_action_task
-        vm_action_task.delay(server.id, "destroy")
+        from app.celery_client import send_vm_action
+        send_vm_action(server.id, "destroy")
     except Exception:
         pass  # Если Celery недоступен — удаляем только из БД
 
@@ -863,8 +863,8 @@ async def admin_ticket_vps_action(
     if server is None:
         raise HTTPException(status_code=404, detail="Сервер не найден")
 
-    from tasks.vm_tasks import vm_action_task
-    vm_action_task.delay(server.id, body.action)
+    from app.celery_client import send_vm_action as send_action
+    send_action(server.id, body.action)
 
     action_status_map = {
         "start": "running", "stop": "stopped", "restart": "running",

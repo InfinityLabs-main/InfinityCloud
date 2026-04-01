@@ -32,9 +32,14 @@ export default function CreateServerPage() {
   const handleCreate = async () => {
     if (!selectedPlan) { setError("Выберите тариф"); return; }
     if (!hostname.trim()) { setError("Введите hostname"); return; }
+    if (!/^[a-zA-Z0-9]([a-zA-Z0-9._-]{0,61}[a-zA-Z0-9])?$/.test(hostname.trim())) {
+      setError("Hostname может содержать только буквы, цифры, точки и дефисы");
+      return;
+    }
     setError(""); setLoading(true);
     try {
-      await serverApi.create({ plan_id: selectedPlan.id, hostname: hostname.trim(), os_template: osTemplate });
+      const idempotency_key = crypto.randomUUID();
+      await serverApi.create({ plan_id: selectedPlan.id, hostname: hostname.trim(), os_template: osTemplate, idempotency_key });
       router.push("/dashboard/servers");
     } catch (err: any) {
       setError(err.response?.data?.detail || "Ошибка создания VPS");

@@ -412,12 +412,16 @@ async def download_attachment(
     db: AsyncSession = Depends(get_db),
 ):
     """Скачать вложение (если принадлежит тикету пользователя)."""
-    result = await db.execute(
+    query = (
         select(TicketAttachment)
         .join(TicketMessage, TicketMessage.id == TicketAttachment.message_id)
         .join(Ticket, Ticket.id == TicketMessage.ticket_id)
-        .where(TicketAttachment.id == attachment_id, Ticket.user_id == current_user.id)
+        .where(TicketAttachment.id == attachment_id)
     )
+    # Обычный пользователь видит только свои вложения, админ — все
+    if current_user.role != "admin":
+        query = query.where(Ticket.user_id == current_user.id)
+    result = await db.execute(query)
     attachment = result.scalar_one_or_none()
     if attachment is None:
         raise HTTPException(status_code=404, detail="Вложение не найдено")

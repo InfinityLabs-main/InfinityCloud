@@ -45,10 +45,10 @@ class Server(Base):
     )
 
     # Relationships
-    owner = relationship("User", back_populates="servers")
+    owner = relationship("User", back_populates="servers", lazy="selectin")
     plan = relationship("Plan", lazy="joined")
-    node = relationship("Node", back_populates="servers")
-    ip_address = relationship("IPAddress", back_populates="server", uselist=False)
+    node = relationship("Node", back_populates="servers", lazy="selectin")
+    ip_address = relationship("IPAddress", back_populates="server", uselist=False, lazy="selectin")
 
     def __repr__(self) -> str:
         return f"<Server id={self.id} vmid={self.proxmox_vmid} status={self.status}>"
