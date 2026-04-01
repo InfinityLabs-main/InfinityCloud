@@ -1,2 +1,2 @@
 # Infinity Cloud — Routers
-from app.routers import admin, auth, console, payments, plans, servers, tickets, users
+from app.routers import admin, auth, console, payments, plans, public, servers, tickets, users

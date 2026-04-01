@@ -1,6 +1,7 @@
 """
 Публичные эндпоинты — без авторизации.
 
+  GET /api/v1/public/plans         — Список активных тарифов
   GET /api/v1/public/nodes/status  — Статус нод (пинг, онлайн)
 """
 from __future__ import annotations
@@ -11,9 +12,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.node import Node
+from app.models.plan import Plan
 from app.schemas.node import NodePublicStatus
+from app.schemas.plan import PlanOut
 
 router = APIRouter()
+
+
+@router.get("/plans", response_model=list[PlanOut])
+async def public_plans(db: AsyncSession = Depends(get_db)):
+    """Список активных тарифных планов (публичный, без авторизации)."""
+    result = await db.execute(
+        select(Plan)
+        .where(Plan.is_active == True)  # noqa: E712
+        .order_by(Plan.sort_order, Plan.price_per_month)
+    )
+    return result.scalars().all()
 
 
 @router.get("/nodes/status", response_model=list[NodePublicStatus])
