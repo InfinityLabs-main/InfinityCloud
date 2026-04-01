@@ -127,7 +127,7 @@ export default function TicketChatPage() {
     };
 
     return () => ws.close();
-  }, [allowed, ticketId]);
+  }, [ticketId]);
 
   const loadTicket = async () => {
     try {
